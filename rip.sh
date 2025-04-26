@@ -25,13 +25,6 @@ process_iso() {
     return
   fi
 
-  mkdir -p "$TODO_DIR"
-  local treefile="${TODO_DIR}/${base}.txt"
-  pushd "$mp" >/dev/null
-  tree -D --timefmt=%Y-%m-%d --du -h -n . > "$OLDPWD/$treefile"
-  popd >/dev/null
-  echo "✓ File listing saved to $treefile"
-
   # find newest file timestamp
   local latest_ts
   latest_ts=$(find "$mp" -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 | cut -d' ' -f1)
@@ -41,22 +34,29 @@ process_iso() {
   fi
   echo "→ Latest file in ISO is at $(date -d "@${latest_ts%.*}" '+%Y-%m-%d %H:%M:%S')"
 
-  echo "→ Unmounting…"
-  fusermount -u "$mp" || echo "⚠️  fusermount failed (already unmounted?)"
-  rmdir "$mp"
-
-  # Prepend date to base
+  # set final filenames
   local prefix
   prefix=$(date -d "@${latest_ts%.*}" '+%Y_%m_%d')
+  mkdir -p "$TODO_DIR"
   local final_iso="${TODO_DIR}/${prefix}_${base}.iso"
   local final_xz="${final_iso}.xz"
   local final_tmp="${final_xz}~"
   local final_txt="${final_iso}.txt"
 
-  # Move ISO before compression
+  # move ISO before compression
   mv -- "$iso" "$final_iso"
 
-  # Compress ISO safely
+  # generate file listing
+  pushd "$mp" >/dev/null
+  tree -D --timefmt=%Y-%m-%d --du -h -n . > "$final_txt"
+  popd >/dev/null
+  echo "✓ File listing saved to $final_txt"
+
+  echo "→ Unmounting…"
+  fusermount -u "$mp" || echo "⚠️  fusermount failed (already unmounted?)"
+  rmdir "$mp"
+
+  # compress ISO safely
   if command -v xz &>/dev/null; then
     echo "→ Compressing $final_iso to $final_xz…"
     if xz -v -9e --threads=0 -c "$final_iso" > "$final_tmp"; then
@@ -97,7 +97,7 @@ while true; do
     name="$volume_label"
   fi
 
-  iso="$(date +%s).iso"  # temp name first
+  iso="$(date +%s).iso"  # temporary name while imaging
   echo "→ Imaging $DRIVE → $iso…"
   dd if="$DRIVE" of="$iso" bs=2048 status=progress conv=noerror,sync || {
     echo "❌ dd failed. Skipping."
