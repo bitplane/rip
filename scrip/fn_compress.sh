@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 
 compress_iso() {
-  local iso_path="$1"
-  local output_dir="$2"
+  local srcdir="$1"
+
+  local iso
+  iso=$(find "$srcdir" -maxdepth 1 -name '*.iso' | head -n1)
+  if [[ -z "$iso" ]]; then
+    log_line "❌ No ISO found in $srcdir"
+    return 1
+  fi
 
   local iso_base
-  iso_base="$(basename "$iso_path")"
-  local tmpfile="${output_dir}/${iso_base}.xz~"
-  local finalfile="${output_dir}/${iso_base}.xz"
+  iso_base="$(basename "$iso")"
+  local tmpfile="${srcdir}/${iso_base}.xz~"
+  local finalfile="${srcdir}/${iso_base}.xz"
 
-  xz -v -9e --threads=0 -c "$iso_path" > "$tmpfile"
+  xz -v -9e --threads=0 -c "$iso" > "$tmpfile"
   mv "$tmpfile" "$finalfile"
+  rm "$iso"
 }

@@ -1,27 +1,38 @@
 #!/usr/bin/env bash
 
-
-source "$(dirname "$0")/fn_mount.sh"
-source "$(dirname "$0")/fn_fileinfo.sh"
 source "$(dirname "$0")/fn_compress.sh"
 source "$(dirname "$0")/fn_log.sh"
 source "$(dirname "$0")/fn_queue.sh"
 
+BASE_DIR="$(dirname "$(dirname "$0")")"
+
+process_zip() {
+  local srcdir="$1"
+
+  local iso
+  iso=$(find "$srcdir" -maxdepth 1 -name '*.iso' | head -n1)
+  if [[ -z "$iso" ]]; then
+    log_line "❌ No ISO found in $srcdir"
+    return 1
+  fi
+
+  compress_iso "$iso" "$srcdir" || return 1
+
+  rm "$iso"
+}
+
 while true; do
-  srcdir=$(find 1.rip/ -mindepth 1 -maxdepth 1 -type d | head -n1)
+  srcdir=$(find "$BASE_DIR/1.rip/" -mindepth 1 -maxdepth 1 -type d | head -n1)
   [[ -z "$srcdir" ]] && sleep 5 && continue
 
-  log_line "Processing $srcdir"
+  log_line "Compressing $srcdir"
 
-  mount_iso "$srcdir/*.iso" || { move_dir_fail "$srcdir" "1.rip.failed"; continue; }
+  if ! process_zip "$srcdir"; then
+    log_line "❌ Compression failed for $(basename "$srcdir")"
+    move_dir_fail "$srcdir" "$BASE_DIR/2.zip.failed"
+    continue
+  fi
 
-  get_latest_file_time "$MOUNT_POINT" > "$srcdir/latest_timestamp.txt"
-  get_tree_listing "$MOUNT_POINT" "$srcdir/tree.txt"
-
-  unmount_iso_and_cleanup "$MOUNT_POINT"
-
-  compress_iso "$srcdir/*.iso" "$srcdir"
-
-  move_dir_success "$srcdir" "2.zip"
+  move_dir_success "$srcdir" "$BASE_DIR/2.zip"
+  log_line "✓ Finished compressing $(basename "$srcdir")"
 done
-

@@ -4,7 +4,9 @@ LOGFILE="$(dirname "$(dirname "$0")")/archive.log"
 
 log_line() {
   local message="$1"
-  echo "$(date '+%Y-%m-%d %H:%M:%S') $message" >> "$LOGFILE"
+  local timestamped="[$(date '+%Y-%m-%d %H:%M:%S')][$$] $message"
+  echo "$timestamped" >> "$LOGFILE"
+  echo "$timestamped" >&2
 }
 
 send_alert() {

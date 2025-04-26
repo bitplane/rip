@@ -6,9 +6,21 @@ source "$(dirname "$0")/fn_queue.sh"
 source "$(dirname "$0")/fn_mount.sh"
 source "$(dirname "$0")/fn_fileinfo.sh"
 
-
 BASE_DIR="$(dirname "$(dirname "$0")")"
 DEVICE="/dev/sr0"
+
+generate_metadata() {
+  local tmpdir="$1"
+  local name="$2"
+
+  mount_iso "$tmpdir/$name.iso" || return 1
+
+  get_tree_listing "$MOUNT_POINT" "$tmpdir/tree.txt" || { unmount_iso_and_cleanup; return 1; }
+  get_latest_file_time "$MOUNT_POINT" > "$tmpdir/.date" || { unmount_iso_and_cleanup; return 1; }
+  head -n 500 "$tmpdir/tree.txt" > "$tmpdir/.info" || { unmount_iso_and_cleanup; return 1; }
+
+  unmount_iso_and_cleanup
+}
 
 while true; do
   wait_for_disc "$DEVICE" || continue
@@ -29,19 +41,12 @@ while true; do
 
   log_line "✓ ddrescue completed for $name"
 
-  # Generate .date and .info
-  mount_iso "$tmpdir/$name.iso" || {
-    log_line "❌ Mount failed after ddrescue for $name"
+  if ! generate_metadata "$tmpdir" "$name"; then
+    log_line "❌ Metadata generation failed for $name"
     move_dir_fail "$tmpdir" "$BASE_DIR/1.rip.failed"
     eject_disc "$DEVICE"
     continue
-  }
-
-  get_tree_listing "$MOUNT_POINT" "$tmpdir/tree.txt"
-  get_latest_file_time "$MOUNT_POINT" > "$tmpdir/.date"
-  head -n 500 "$tmpdir/tree.txt" > "$tmpdir/.info"
-
-  unmount_iso_and_cleanup
+  fi
 
   eject_disc "$DEVICE"
   log_line "✓ Disc $name processed successfully"
