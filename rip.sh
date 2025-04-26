@@ -1,10 +1,3 @@
-#!/usr/bin/bash
-DRIVE=/dev/sr0
-TODO_DIR=todo
-
-# process_iso <path-to-iso>
-#   mounts (fuseiso or sudo mount), finds newest file date, unmounts, renames into $TODO_DIR,
-#   then xz-compresses and removes the uncompressed ISO
 process_iso() {
   local iso="$1"
   local mp use_sudo_mount=false
@@ -37,45 +30,27 @@ process_iso() {
   rmdir "$mp"
 
   # format date prefix
-  local prefix base dest
+  local prefix base tmp_dest final_dest
   prefix=$(date -d "@${latest_ts%.*}" '+%Y_%m_%d')
   mkdir -p "$TODO_DIR"
   base=$(basename "$iso")
-  dest="${TODO_DIR}/${prefix}_${base}"
-
-  mv -- "$iso" "$dest"
-  echo "✓ ISO moved to $dest"
+  tmp_dest="${prefix}_${base}"
+  final_dest="${TODO_DIR}/${tmp_dest}.xz"
 
   # compress with xz
   if command -v xz &>/dev/null; then
-    echo "→ Compressing $dest with xz -v -9e --threads=0…"
-    xz -v -9e --threads=0 "$dest" && echo "✓ Compressed to ${dest}.xz"
+    echo "→ Compressing $iso to temporary file with xz -v -9e --threads=0…"
+    xz -v -9e --threads=0 -c "$iso" > "${tmp_dest}.xz"
+    echo "✓ Compressed to ${tmp_dest}.xz"
+
+    # move compressed file into TODO_DIR
+    mv -- "${tmp_dest}.xz" "$final_dest"
+    echo "✓ Moved compressed file to $final_dest"
   else
     echo "⚠️  xz not found; skipping compression."
-  fi
-}
-
-# sanity checks
-for cmd in fuseiso fusermount dd eject xz; do
-  if ! command -v $cmd &>/dev/null; then
-    echo "ERROR: '$cmd' is required but not installed. Aborting." >&2
     exit 1
   fi
-done
 
-while true; do
-  read -p "Enter base name for this ISO (ENTER to quit): " name
-  [[ -z $name ]] && echo "All done; exiting." && break
-
-  iso="${name}.iso"
-  echo "→ Imaging $DRIVE → $iso…"
-  sudo dd if="$DRIVE" of="$iso" bs=2048 status=progress conv=noerror,sync
-
-  echo "→ Ejecting tray…"
-  sudo eject "$DRIVE"
-
-  process_iso "$iso"
-
-  echo
-  read -p "Insert next CD and press ENTER to continue…" _
-done
+  # clean up uncompressed ISO
+  rm -- "$iso"
+}
