@@ -6,7 +6,7 @@ upload_directory() {
   local files=()
   while IFS= read -r -d '' file; do
     files+=("$file")
-  done < <(find "$srcdir" -maxdepth 1 -type f ! -name '.*' -print0)
+  done < <(find "$srcdir" -type f ! -name '.*' -print0)
 
   if [[ ${#files[@]} -eq 0 ]]; then
     log_line "⚠️ No files to upload in $srcdir"
