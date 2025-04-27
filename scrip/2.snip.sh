@@ -11,7 +11,7 @@ generate_metadata() {
   local outdir="$1"
   get_tree_listing   "$MOUNT_POINT" "$outdir/tree.txt"
   get_latest_file_time "$MOUNT_POINT" > "$outdir/.date"
-  head -n 500 "$outdir/tree.txt" > "$outdir/.info"
+  head -n 500 "$outdir/tree.txt" >> "$outdir/.info"
 }
 
 while true; do

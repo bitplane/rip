@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEVICE="/dev/sr0"
 
 source "$BASE_DIR/scrip/lib_drive.sh"
 source "$BASE_DIR/scrip/lib_log.sh"
 source "$BASE_DIR/scrip/lib_queue.sh"
 
-# project root
+DEVICE="${1:-$(get_drives | head -n1)}"
+
 
 while true; do
   wait_for_disc "$DEVICE" || continue
