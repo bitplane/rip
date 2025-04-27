@@ -5,13 +5,13 @@ wait_for_disc() {
   while true; do
     if [ -b "$device" ]; then
       if dd if="$device" bs=2048 count=1 of=/dev/null status=none 2>/dev/null; then
-        echo "✅ Disc detected at $device" >&2
+        log_line "✅ Disc detected at $device" >&2
         return 0
       fi
     fi
 
     if ! $printed_waiting; then
-      echo "⌛ Waiting for disc in $device..." >&2
+      log_line "⌛ Waiting for disc in $device..." >&2
       printed_waiting=true
     fi
 

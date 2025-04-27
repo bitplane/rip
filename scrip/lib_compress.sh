@@ -13,7 +13,10 @@ compress_iso() {
   local tmpfile="${srcdir}/${iso_base}.xz~"
   local finalfile="${srcdir}/${iso_base}.xz"
 
-  xz -v -9e --threads=0 -c "$iso" > "$tmpfile"
-  mv "$tmpfile" "$finalfile"
-  rm "$iso"
+  xz -v -9e --threads=0 -c "$iso" > "$tmpfile" || {
+      log_line "❌ Failed to compress $iso"
+      return 1
+  }
+  mv "$tmpfile" "$finalfile" || return 1
+  rm "$iso" || return 1
 }

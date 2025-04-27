@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-source "$(dirname "$0")/lib_drive.sh"
-source "$(dirname "$0")/lib_log.sh"
-source "$(dirname "$0")/lib_queue.sh"
-
-# project root
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEVICE="/dev/sr0"
+
+source "$BASE_DIR/scrip/lib_drive.sh"
+source "$BASE_DIR/scrip/lib_log.sh"
+source "$BASE_DIR/scrip/lib_queue.sh"
+
+# project root
 
 while true; do
   wait_for_disc "$DEVICE" || continue

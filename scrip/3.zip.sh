@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/lib_compress.sh"
-source "$(dirname "$0")/lib_log.sh"
-source "$(dirname "$0")/lib_queue.sh"
-
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$BASE_DIR/scrip/lib_compress.sh"
+source "$BASE_DIR/scrip/lib_log.sh"
+source "$BASE_DIR/scrip/lib_queue.sh"
 
 while true; do
   srcdir=$(sleep_until_dirs "$BASE_DIR/3.zip")

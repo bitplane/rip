@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/lib_mount.sh"
-source "$(dirname "$0")/lib_fileinfo.sh"
-source "$(dirname "$0")/lib_log.sh"
-source "$(dirname "$0")/lib_queue.sh"
-
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+source "$BASE_DIR/scrip/lib_mount.sh"
+source "$BASE_DIR/scrip/lib_fileinfo.sh"
+source "$BASE_DIR/scrip/lib_log.sh"
+source "$BASE_DIR/scrip/lib_queue.sh"
 
 # Run INSIDE the ISO mount, with $MOUNT_POINT set and with set -e
 generate_metadata() {
@@ -17,7 +17,7 @@ generate_metadata() {
 while true; do
   srcdir=$(sleep_until_dirs "$BASE_DIR/2.snip")
   name=$(basename "$srcdir")
-  log_line "Stripping metadata for $name"
+  log_line "Extracting metadata for $name"
 
   if ! mount_and_run "$srcdir/$name.iso" generate_metadata "$srcdir"; then
     log_line "❌ Metadata generation failed for $name"
@@ -26,5 +26,5 @@ while true; do
   fi
 
   move_dir_success "$srcdir" "$BASE_DIR/3.zip"
-  log_line "✓ Metadata stripped for $name"
+  log_line "✓ Metadata snipped for $name"
 done
