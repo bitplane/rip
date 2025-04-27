@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 source "$(dirname "$0")/fn_monitor.sh"
 
 while true; do

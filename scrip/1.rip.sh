@@ -27,7 +27,7 @@ while true; do
   fi
 
   # Move on to the strip stage
-  move_dir_success "$tmpdir" "$BASE_DIR/2.strip"
+  move_dir_success "$tmpdir" "$BASE_DIR/2.snip"
   eject_disc "$DEVICE"
   log_line "✓ Disc $name ripped successfully"
 done
