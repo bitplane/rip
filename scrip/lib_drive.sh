@@ -40,9 +40,17 @@ create_image() {
   local device="$1"
   local output_iso="$2"
   local output_log="$3"
-  log_line "🔄 reading disk"
-  ddrescue -b 2048 -n "$device" "$output_iso" "$output_log"
-  ddrescue -b 2048 -r3 "$device" "$output_iso" "$output_log"
+  
+  # Run ddrescue in a subshell with a changed directory
+  (
+    cd "$(dirname "$output_iso")" || return 1
+    local iso_name=$(basename "$output_iso")
+    local log_name=$(basename "$output_log")
+    
+    log_line "🔄 reading disk"
+    ddrescue -b 2048 -n "$device" "$iso_name" "$log_name" &&
+    ddrescue -b 2048 -r3 "$device" "$iso_name" "$log_name"
+  )
 }
 
 get_drives() {
