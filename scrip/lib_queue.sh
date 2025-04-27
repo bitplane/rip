@@ -37,7 +37,7 @@ move_dir_success() {
 
 move_dir_fail() {
   local srcdir="$1"
-  local faildir=$(dirname "$srcdir")/.skip
+  local faildir=$(dirname "$srcdir").skip
   local dest="$faildir/$(basename "$srcdir")"
 
   if [[ -d "$dest" ]]; then
