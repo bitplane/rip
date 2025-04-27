@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 
-mount_iso() {
+mount_and_run() {
   local iso_path="$1"
-  MOUNT_POINT=$(mktemp -d)
+  shift
 
-  fuseiso "$iso_path" "$MOUNT_POINT"
-}
+  local tmp_mount
+  tmp_mount=$(mktemp -d)
 
-unmount_iso_and_cleanup() {
-  if [[ -n "$MOUNT_POINT" && -d "$MOUNT_POINT" ]]; then
-    fusermount -u "$MOUNT_POINT"
-    rmdir "$MOUNT_POINT"
-    unset MOUNT_POINT
-  fi
+  (
+    set -e
+    trap 'fusermount -u "$tmp_mount"; rmdir "$tmp_mount"' EXIT
+
+    fuseiso "$iso_path" "$tmp_mount"
+
+    export MOUNT_POINT="$tmp_mount"
+    "$@"
+  )
 }

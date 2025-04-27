@@ -15,7 +15,7 @@ dir_counts_summary() {
   local base_dir="$1"
   echo "---- Queue status ----"
 
-  for queue in 1.rip 1.rip.failed 2.zip 2.zip.failed 3.ship 3.ship.failed 4.done; do
+  for queue in ?.*; do
     count=$(find "$base_dir/$queue" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
     printf "%-15s: %s\n" "$queue" "$count"
   done

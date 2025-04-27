@@ -1,8 +1,7 @@
 # internet archive ISO uploader
 
-requirements:
+Rips and uploads CDs/DVDs to the Internet Archive
 
-* fuse iso
-* xz
-* ia
-
+```bash
+sudo apt install tmux fuseiso 
+```
