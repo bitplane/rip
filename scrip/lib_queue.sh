@@ -7,7 +7,7 @@ count_dirs() {
 sleep_until_dirs() {
   local dir="$1"
   local srcdir
-  log_line "🔍 watching $dir for work"
+  log_line "🔍 watching $(basename $dir) for work"
   while true; do
     srcdir=$(find "$dir" -mindepth 1 -maxdepth 1 -type d | head -n1)
     if [[ -n "$srcdir" ]]; then
