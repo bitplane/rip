@@ -11,7 +11,7 @@ while true; do
 
   if ! upload_directory "$srcdir"; then
     log_line "❌ upload_directory failed for $name"
-    move_dir_fail "$srcdir" "$BASE_DIR/4.ship.failed"
+    move_dir_fail "$srcdir"
     continue
   fi
 

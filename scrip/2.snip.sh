@@ -21,7 +21,7 @@ while true; do
 
   if ! mount_and_run "$srcdir/$name.iso" generate_metadata "$srcdir"; then
     log_line "❌ Metadata generation failed for $name"
-    move_dir_fail "$srcdir" "$BASE_DIR/2.snip.failed"
+    move_dir_fail "$srcdir"
     continue
   fi
 

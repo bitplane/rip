@@ -23,7 +23,7 @@ spawn_tmux() {
   # Pane 1: rip
   tmux split-window -v -t "$session_name":watch.0 -c "$project_dir"
   tmux send-keys -t "$session_name":watch.1 \
-    "./scrip/1.rip.sh" C-m
+    "./scrip/1.rip-all.sh" C-m
 
   # Pane 2: snip
   tmux split-window -h -t "$session_name":watch.1 -c "$project_dir"

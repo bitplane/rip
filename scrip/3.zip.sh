@@ -11,7 +11,7 @@ while true; do
 
   if ! compress_iso "$srcdir"; then
     log_line "❌ compress_iso failed for $name"
-    move_dir_fail "$srcdir" "$BASE_DIR/3.zip.failed"
+    move_dir_fail "$srcdir"
     continue
   fi
 

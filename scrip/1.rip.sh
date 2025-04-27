@@ -22,7 +22,7 @@ while true; do
         "$tmpdir/$name.iso" \
         "$tmpdir/$name.ddrescue.log"; then
     log_line "❌ ddrescue failed for $name"
-    move_dir_fail "$tmpdir" "$BASE_DIR/1.rip.failed"
+    move_dir_fail "$tmpdir"
     eject_disc "$DEVICE"
     continue
   fi
