@@ -2,7 +2,7 @@ tail_last_log_lines() {
   local logfile="$1"
   echo "---- Last log lines ----"
   if [[ -f "$logfile" ]]; then
-    tail -n 10 "$logfile"
+    tail -n 5 "$logfile"
   else
     echo "(No log yet)"
   fi

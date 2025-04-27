@@ -11,7 +11,7 @@ wait_for_disc() {
     fi
 
     if ! $printed_waiting; then
-      log_line "⌛ Waiting for disc in $device..." >&2
+      log_line "💽 Waiting for disc in $device..." >&2
       printed_waiting=true
     fi
 
@@ -40,7 +40,7 @@ create_image() {
   local device="$1"
   local output_iso="$2"
   local output_log="$3"
-
+  log_line "🔄 reading disk"
   ddrescue -b 2048 -n "$device" "$output_iso" "$output_log"
   ddrescue -b 2048 -r3 "$device" "$output_iso" "$output_log"
 }

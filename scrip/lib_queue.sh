@@ -7,9 +7,11 @@ count_dirs() {
 sleep_until_dirs() {
   local dir="$1"
   local srcdir
+  log_line "🔍 watching $dir for work"
   while true; do
     srcdir=$(find "$dir" -mindepth 1 -maxdepth 1 -type d | head -n1)
     if [[ -n "$srcdir" ]]; then
+      log_line "📂 found $srcdir"
       echo "$srcdir"
       return 0
     fi
@@ -29,7 +31,8 @@ move_dir_success() {
     dest="${successdir}/$(basename "$srcdir")_${ts}"
   fi
 
-  mv "$srcdir" "$dest"
+  log_line "🎉 moving $srcdir to $dest"
+  mv "$srcdir" "$dest" || return 1
 }
 
 move_dir_fail() {
@@ -43,6 +46,6 @@ move_dir_fail() {
     ts=$(date '+%Y%m%d_%H%M%S')
     dest="${faildir}/$(basename "$srcdir")_${ts}"
   fi
-
+  log_line "💩 moving $srcdir to $dest"
   mv "$srcdir" "$dest"
 }

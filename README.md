@@ -2,10 +2,20 @@
 
 Rips and uploads CDs/DVDs to the Internet Archive
 
-## setup
+## SETUP.EXE
 
 ```bash
 sudo apt install tmux fuseiso gddrescue tree xz-utils
 pip install internetarchive
 ```
+
+## Autorun.inf
+
+To run it:
+
+```bash
+./rip.sh
+```
+
+This will create a 
 
