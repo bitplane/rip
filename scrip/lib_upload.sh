@@ -1,27 +1,20 @@
 upload_directory() {
-  local srcdir="$1"
+  local work="$1"
   local item_name
-  item_name="$(basename "$srcdir")"
+  item_name="$(basename "$work")"
 
   local files=()
   while IFS= read -r -d '' file; do
     files+=("$file")
-  done < <(find "$srcdir" -type f ! -name '.*' -print0)
+  done < <(find "$work" -type f ! -path "*/.meta/*" -print0)
 
   if [[ ${#files[@]} -eq 0 ]]; then
-    log_line "⚠️ No files to upload in $srcdir"
+    log_error "⚠️ No files to upload in $work"
     return 1
   fi
 
-  local date=""
-  local description=""
-
-  [[ -f "$srcdir/.date" ]] && date=$(cat "$srcdir/.date")
-  [[ -f "$srcdir/.info" ]] && description=$(cat "$srcdir/.info")
-
-  ia upload "$item_name" "${files[@]}" \
-    --metadata="title:${item_name}" \
-    --metadata="mediatype:software" \
-    --metadata="date:${date}" \
-    --metadata="description:${description}" || return 1
+  local meta_args=()
+  meta_get_args "$work" meta_args
+  
+  ia upload "$item_name" "${files[@]}" "${meta_args[@]}" || return 1
 }

@@ -1,22 +1,20 @@
 compress_iso() {
-  local srcdir="$1"
+  local work="$1"
 
   local iso
-  iso=$(find "$srcdir" -maxdepth 1 -name '*.iso' | head -n1)
+  iso=$(find "$work" -maxdepth 1 -name '*.iso' | head -n1)
   if [[ -z "$iso" ]]; then
-    log_line "❌ No ISO found in $srcdir"
+    log_info "❌ No ISO found in $work" >&2
     return 1
   fi
 
   local iso_base
   iso_base="$(basename "$iso")"
-  local tmpfile="${srcdir}/${iso_base}.xz~"
-  local finalfile="${srcdir}/${iso_base}.xz"
+  local dest="$work"/"$iso_base".xz
 
-  xz -v -9e --threads=0 -c "$iso" > "$tmpfile" || {
-      log_line "❌ Failed to compress $iso"
+  xz -v -9e --threads=0 -c "$iso" > "$dest" || {
+      log_error "❌ Failed to compress $iso" >&2
       return 1
   }
-  mv "$tmpfile" "$finalfile" || return 1
   rm "$iso" || return 1
 }

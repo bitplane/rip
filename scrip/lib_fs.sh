@@ -1,4 +1,5 @@
-get_latest_file_time() {
+
+fs_last_update() {
   local mount_point="$1"
   latest=$(
     find "$mount_point" -type f -printf '%T@ %p\n' 2>/dev/null | \
@@ -9,12 +10,11 @@ get_latest_file_time() {
   date -d "@$latest" +"%Y-%m-%d"
 }
 
-# this runs in a set -e shell, so no error handling
-get_tree_listing() {
+fs_tree() {
   local mount_point="$1"
   local output_file="$2"
 
   pushd "$mount_point" >/dev/null
-  tree -D --timefmt=%Y-%m-%d --du -h -n . > "$output_file"
+  tree -D --timefmt=%Y-%m-%d --du -h -n .
   popd >/dev/null
 }

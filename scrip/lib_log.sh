@@ -1,20 +1,28 @@
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOGFILE="$BASE_DIR/archive.log"
 
-log_line() {
+log() {
   local message="$1"
   local timestamped="$(date '+%Y-%m-%d %H:%M:%S') "[$$]" $message"
   echo "$timestamped" >> "$LOGFILE"
-  echo "$timestamped" >&2
+  echo "$message"
 }
 
-send_alert() {
+log_info() {
   local message="$1"
-  log_line "ALERT: $message"
+  log "[I]: $message"
+}
+
+log_error() {
+  local message="$1"
+  log "[E]: $message" >&2
+}
+
+log_alert() {
+  local message="$1"
+  log_error "$message"
   
   if command -v notify-send &>/dev/null; then
     notify-send "Archive Pipeline Alert" "$message"
-  else
-    echo "ALERT: $message" >&2
   fi
 }

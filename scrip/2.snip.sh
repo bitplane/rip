@@ -1,30 +1,31 @@
 #!/usr/bin/env bash
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-source "$BASE_DIR/scrip/lib_mount.sh"
-source "$BASE_DIR/scrip/lib_fileinfo.sh"
-source "$BASE_DIR/scrip/lib_log.sh"
-source "$BASE_DIR/scrip/lib_queue.sh"
+source "$BASE_DIR/scrip/libs.sh"
 
 # Run INSIDE the ISO mount, with $MOUNT_POINT set and with set -e
 generate_metadata() {
-  local outdir="$1"
-  get_tree_listing   "$MOUNT_POINT" "$outdir/tree.txt"
-  get_latest_file_time "$MOUNT_POINT" > "$outdir/.date"
-  head -n 500 "$outdir/tree.txt" >> "$outdir/.info"
+  local work="$1"
+  fs_tree "$MOUNT_POINT" >> "$work"/tree.txt
+
+  local name
+  title=$(echo $(basename "$work") | tr "_" " ")
+  echo "$title"                  |  meta_add "$work" title
+  echo "software"                |  meta_add "$work" mediatype
+  fs_last_update "$MOUNT_POINT"  |  meta_add "$work" date
+  head -n 500 "$work/tree.txt"   |  meta_add "$work" info
 }
 
 while true; do
-  srcdir=$(sleep_until_dirs "$BASE_DIR/2.snip")
-  name=$(basename "$srcdir")
-  log_line "Extracting metadata for $name"
+  work=$(queue_wait "$BASE_DIR/2.snip")
+  name=$(basename "$work")
+  log_info "👀 Extracting metadata for $name"
 
-  if ! mount_and_run "$srcdir/$name.iso" generate_metadata "$srcdir"; then
-    log_line "❌ Metadata generation failed for $name"
-    move_dir_fail "$srcdir"
+  if ! mount_and_run "$work/$name.iso" generate_metadata "$work"; then
+    log_error "❌ Metadata generation failed for $name"
+    queue_fail "$work"
     continue
   fi
 
-  move_dir_success "$srcdir" "$BASE_DIR/3.zip"
-  log_line "✓ Metadata snipped for $name"
+  queue_success "$work"
 done

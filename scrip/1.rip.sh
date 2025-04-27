@@ -1,34 +1,29 @@
 #!/usr/bin/env bash
-
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$BASE_DIR/scrip/libs.sh"
 
-source "$BASE_DIR/scrip/lib_drive.sh"
-source "$BASE_DIR/scrip/lib_log.sh"
-source "$BASE_DIR/scrip/lib_queue.sh"
-
-DEVICE="${1:-$(get_drives | head -n1)}"
-
+DEVICE="${1:-$(drive_list | head -n1)}"
 
 while true; do
-  wait_for_disc "$DEVICE" || continue
-  log_line "Disc detected in $DEVICE"
+  drive_eject     "$DEVICE"
 
-  name=$(get_disc_name "$DEVICE")
-  tmpdir="$BASE_DIR/1.rip/$name"
-  mkdir -p "$tmpdir"
+  drive_wait "$DEVICE" || continue
+  log_info "💽 Disc detected in $DEVICE"
 
-  log_line "Starting ddrescue for $name"
-  if ! create_image "$DEVICE" \
-        "$tmpdir/$name.iso" \
-        "$tmpdir/$name.ddrescue.log"; then
-    log_line "❌ ddrescue failed for $name"
-    move_dir_fail "$tmpdir"
-    eject_disc "$DEVICE"
+  name=$(iso_get_name "$DEVICE")
+  work="$BASE_DIR/1.rip/$name"
+
+  mkdir -p "$work"
+
+  log_info "⬇️ ripping $name"
+  if ! drive_dump "$DEVICE" \
+        "$work/$name.iso" \
+        "$work/$name.ddrescue.log"; then
+
+    log_error     "❌ ddrescue failed for $name"
+    queue_fail    "$work"
     continue
   fi
+  queue_success "$work"
 
-  # Move on to the strip stage
-  move_dir_success "$tmpdir" "$BASE_DIR/2.snip"
-  eject_disc "$DEVICE"
-  log_line "✓ Disc $name ripped successfully"
 done

@@ -1,0 +1,11 @@
+# includes the libraries used in the script in dependency order
+# Each "lib_name.sh" contains functions named "name_*"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$BASE_DIR/scrip/lib_log.sh"
+source "$BASE_DIR/scrip/lib_queue.sh"
+source "$BASE_DIR/scrip/lib_meta.sh"
+source "$BASE_DIR/scrip/lib_monitor.sh"
+source "$BASE_DIR/scrip/lib_iso.sh"
+source "$BASE_DIR/scrip/lib_drive.sh"
+source "$BASE_DIR/scrip/lib_compress.sh"
+source "$BASE_DIR/scrip/lib_upload.sh"

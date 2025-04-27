@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source ./scrip/lib_tmux.sh
+source ./scrip/libs.sh
 
 deps() {
   local missing=()
@@ -31,4 +31,4 @@ if ! deps; then
   exit 1
 fi
 
-spawn_tmux "archive"
+monitor_tmux "archive"
