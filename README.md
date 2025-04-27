@@ -1,3 +1,6 @@
+---
+features: ["asciinema"]
+---
 # `rip`
 
 bash scripts for batch uploading ISOs to the Internet Archive.
@@ -8,12 +11,14 @@ It'll grumble at startup if you don't have the following:
 
 ```bash
 sudo apt install tmux fuseiso gddrescue tree xz-utils
-pip install internetarchive
+pip install "internetarchive~=5.3"
 ```
+
+Configure `internetarchive` with `ia configure` or it'll cry when you run it.
 
 ## `PIC.ICO`
 
-![pic](pic/pic.cast.webm)
+![pic](pic/pic.cast.webp)
 
 ## `Autorun.inf`
 
