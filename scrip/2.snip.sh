@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/fn_mount.sh"
-source "$(dirname "$0")/fn_fileinfo.sh"
-source "$(dirname "$0")/fn_log.sh"
-source "$(dirname "$0")/fn_queue.sh"
+source "$(dirname "$0")/lib_mount.sh"
+source "$(dirname "$0")/lib_fileinfo.sh"
+source "$(dirname "$0")/lib_log.sh"
+source "$(dirname "$0")/lib_queue.sh"
 
-BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Run INSIDE the ISO mount, with $MOUNT_POINT set
+# Run INSIDE the ISO mount, with $MOUNT_POINT set and with set -e
 generate_metadata() {
   local outdir="$1"
   get_tree_listing   "$MOUNT_POINT" "$outdir/tree.txt"
@@ -21,7 +21,7 @@ while true; do
 
   if ! mount_and_run "$srcdir/$name.iso" generate_metadata "$srcdir"; then
     log_line "❌ Metadata generation failed for $name"
-    move_dir_fail "$srcdir" "$BASE_DIR/2.strip.failed"
+    move_dir_fail "$srcdir" "$BASE_DIR/2.snip.failed"
     continue
   fi
 

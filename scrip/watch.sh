@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-
-source "$(dirname "$0")/fn_monitor.sh"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$BASE_DIR"/scrip/lib_monitor.sh
 
 while true; do
   clear

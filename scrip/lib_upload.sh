@@ -23,5 +23,5 @@ upload_directory() {
     --metadata="title:${item_name}" \
     --metadata="mediatype:software" \
     --metadata="date:${date}" \
-    --metadata="description:${description}"
+    --metadata="description:${description}" || return 1
 }

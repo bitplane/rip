@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 get_latest_file_time() {
   local mount_point="$1"
   find "$mount_point" -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 | cut -d' ' -f1

@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 count_dirs() {
   local dir="$1"
   find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l

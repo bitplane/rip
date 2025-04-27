@@ -1,6 +1,5 @@
-#!/usr/bin/env bash
-
-LOGFILE="$(dirname "$(dirname "$0")")/archive.log"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOGFILE="$BASE_DIR/archive.log"
 
 log_line() {
   local message="$1"

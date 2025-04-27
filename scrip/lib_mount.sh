@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 mount_and_run() {
   local iso_path="$1"
   shift
@@ -9,7 +7,7 @@ mount_and_run() {
 
   (
     set -e
-    trap 'fusermount -u "$tmp_mount"; rmdir "$tmp_mount"' EXIT
+    trap 'fusermount -u "$tmp_mount" || true; rmdir "$tmp_mount" || true' EXIT
 
     fuseiso "$iso_path" "$tmp_mount"
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 compress_iso() {
   local srcdir="$1"
 

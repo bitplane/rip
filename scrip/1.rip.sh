@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-source "$(dirname "$0")/fn_drive.sh"
-source "$(dirname "$0")/fn_log.sh"
-source "$(dirname "$0")/fn_queue.sh"
+source "$(dirname "$0")/lib_drive.sh"
+source "$(dirname "$0")/lib_log.sh"
+source "$(dirname "$0")/lib_queue.sh"
 
 # project root
-BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEVICE="/dev/sr0"
 
 while true; do
