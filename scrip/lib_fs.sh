@@ -12,11 +12,10 @@ fs_last_update() {
 
 fs_tree() {
   local mount_point="$1"
-  local output_file="$2"
 
-  pushd "$mount_point" >/dev/null
+  pushd "$mount_point" >/dev/null || return 1
   tree -D --timefmt=%Y-%m-%d --du -h -n .
-  popd >/dev/null
+  popd >/dev/null || return 1
 }
 
 fs_extract_icon() {
@@ -50,7 +49,7 @@ fs_extract_icon() {
   fi
 
   # Convert .ico to .png
-  if command -v convert &>/dev/null; then
+  if command -v convert > /dev/null; then
     convert "$full_icon_path" "$dest"/icon.png
   else
     log_error "❌ 'convert' command not found. Install ImageMagick to enable icon conversion." >&2

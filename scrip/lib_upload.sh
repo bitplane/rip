@@ -12,7 +12,7 @@ upload_directory() {
     local files=()
     while IFS= read -r -d '' file; do
       files+=("$file")
-    done < <(find . -type f ! -path "*/.*" -print0)
+    done < <(find . -type f ! -path "./.*" -print0)
 
     if [[ ${#files[@]} -eq 0 ]]; then
       log_error "⚠️ No files to upload in $work"
@@ -28,7 +28,7 @@ upload_directory() {
       ((count++))
 
       if [[ $count -eq $batch_size ]]; then
-        ia upload -c --keep-directories --no-derive --retries=100 "${meta_args[@]}" "$item_name" "${batch[@]}" || return 1
+        ia upload -c --keep-directories --retries=100 --sleep=120 "${meta_args[@]}" "$item_name" "${batch[@]}" || return 1
         batch=()
         count=0
       fi
@@ -36,9 +36,7 @@ upload_directory() {
 
     # Upload any remaining files
     if [[ ${#batch[@]} -gt 0 ]]; then
-      ia upload -c --keep-directories --no-derive --retries=100 "${meta_args[@]}" "$item_name" "${batch[@]}" || return 1
+      ia upload -c --keep-directories --retries=100 --sleep=120 "${meta_args[@]}" "$item_name" "${batch[@]}" || return 1
     fi
-
-    ia derive "$item_name" || return 1
   ) || return 1
 }

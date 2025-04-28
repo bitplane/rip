@@ -8,9 +8,8 @@ monitor_log() {
 }
 
 monitor_queue() {
-  local base_dir="$1"
-  for queue in "$base_dir"/?.*; do
-    count=$(find "$base_dir/$queue" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+  for queue in "$BASE_DIR"/?.*; do
+    count=$(find "$BASE_DIR/$queue" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
     printf "%-15s: %s\n" "$queue" "$count"
   done
 }

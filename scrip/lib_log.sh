@@ -3,8 +3,7 @@ LOGFILE="$BASE_DIR/archive.log"
 
 log() {
   local message="$1"
-  local timestamped="$(date '+%Y-%m-%d %H:%M:%S') "[$$]" $message"
-  echo "$timestamped" >> "$LOGFILE"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') "[$$]" $message" >> "$LOGFILE"
   echo "$message"
 }
 
@@ -22,7 +21,7 @@ log_alert() {
   local message="$1"
   log_error "$message"
   
-  if command -v notify-send &>/dev/null; then
+  if command -v notify-send > /dev/null; then
     notify-send "Archive Pipeline Alert" "$message"
   fi
 }

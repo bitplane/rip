@@ -6,9 +6,7 @@ DEVICE="${1:-$(drive_list | head -n1)}"
 
 while true; do
   drive_eject     "$DEVICE"
-
   drive_wait "$DEVICE" || continue
-  log_info "💽 Disc detected in $DEVICE"
 
   name=$(iso_get_name "$DEVICE")
   work="$BASE_DIR/1.rip/$name"

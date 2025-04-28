@@ -3,16 +3,17 @@ meta_add() {
   local item="$1"
   local key="$2"
   local path="$item/.meta/$key"
+  local count
   
   mkdir -p "$path"
-  local count=$(ls -1 "$path" 2>/dev/null | wc -l)
+  count=$(find "$path" -type f 2>/dev/null | wc -l)
   cat > "$path/$count"
 }
 
 meta_get() {
   local item="$1"
   local key="$2"
-  cat ${item}/.meta/${key}/*
+  find "$item/.meta/$key" -type f -print0 | xargs -0 cat 2>/dev/null || true
 }
 
 meta_get_args() {
@@ -29,7 +30,8 @@ meta_get_args() {
   for key_dir in "$item/.meta"/*; do
     [[ -d "$key_dir" ]] || continue
     
-    local key=$(basename "$key_dir")
+    local key
+    key=$(basename "$key_dir")
     
     # Process each value file for this key
     for value_file in "$key_dir"/*; do

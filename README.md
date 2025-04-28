@@ -10,7 +10,7 @@ bash scripts for batch ripping computer CDs/DVDs and uploading to archive.org
 It'll grumble at startup if you don't have the following:
 
 ```bash
-sudo apt install tmux fuseiso gddrescue tree xz-utils imagemagick
+sudo apt install tmux fuseiso gddrescue tree xz-utils imagemagick eject genisoimage
 pip install "internetarchive~=5.3"
 ```
 
