@@ -9,12 +9,13 @@ generate_metadata() {
   fs_tree "$MOUNT_POINT" >> "$work"/tree.txt
 
   local name
-  title=$(echo $(basename "$work") | tr "_" " ")
-  echo "$title"                          |  meta_add "$work" title
-  echo "software"                        |  meta_add "$work" mediatype
-  fs_last_update "$MOUNT_POINT"          |  meta_add "$work" date
-  head -n 500 "$work/tree.txt"           |  meta_add "$work" description
-  echo "https://github.com/bitplane/rip" |  meta_add . source
+  date=$(fs_last_update "$MOUNT_POINT")
+  title="$date $(echo $(basename "$work") | tr '_' ' ')"
+  echo "$title"                           |  meta_add "$work" title
+  echo "software"                         |  meta_add "$work" mediatype
+  echo "$date"                            |  meta_add "$work" date
+  head -n 500 "$work/tree.txt"            |  meta_add "$work" description
+  echo "https://github.com/bitplane/rip"  |  meta_add . source
 }
 
 while true; do

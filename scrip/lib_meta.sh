@@ -9,6 +9,12 @@ meta_add() {
   cat > "$path/$count"
 }
 
+meta_get() {
+  local item="$1"
+  local key="$2"
+  cat ${item}/.meta/${key}/*
+}
+
 meta_get_args() {
   local item="$1"
   local -n out_array=$2  # Nameref to caller's array
