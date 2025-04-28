@@ -39,7 +39,9 @@ drive_dump() {
     local log_name=$(basename "$output_log")
     
     log_info "🔄 reading disk"
-    ddrescue -b 2048 -n "$device" "$iso_name" "$log_name"
+    # no scrape, trim, retries, no waiting for 2s, do at least 2k/sec
+    # 2k block size, tell me all about it
+    ddrescue -n -M -r0 -a 2048 -b 2048 -vv "$device" "$iso_name" "$log_name"
   )
 }
 

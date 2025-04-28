@@ -18,3 +18,46 @@ fs_tree() {
   tree -D --timefmt=%Y-%m-%d --du -h -n .
   popd >/dev/null
 }
+
+fs_extract_icon() {
+  local src="$1"
+  local dest="$2"
+
+  # Find autorun.inf (case insensitive)
+  local autorun
+  autorun=$(find "$src" -iname 'autorun.inf' -print -quit)
+
+  if [[ -z "$autorun" ]]; then
+    return 0
+  fi
+
+  # Extract icon path
+  local icon_file
+  icon_file=$(grep -i '^icon=.*\.ico$' "$autorun" | head -n1 | sed -E 's/^[Ii][Cc][Oo][Nn]=//i')
+
+  if [[ -z "$icon_file" ]]; then
+    return 0
+  fi
+
+  # Clean possible leading/trailing spaces
+  icon_file="$(echo "$icon_file" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+  # Full path to the icon
+  local full_icon_path="$src/$icon_file"
+
+  if [[ ! -f "$full_icon_path" ]]; then
+    return 0
+  fi
+
+  # Convert .ico to .png
+  if command -v convert &>/dev/null; then
+    convert "$full_icon_path" "$dest"/icon.png
+  else
+    log_error "❌ 'convert' command not found. Install ImageMagick to enable icon conversion." >&2
+    cp "$full_icon_path" "$dest"/icon.ico
+    return 0
+  fi
+
+  return 0
+}
+
