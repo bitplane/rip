@@ -5,8 +5,8 @@ source "$BASE_DIR/scrip/libs.sh"
 DEVICE="${1:-$(drive_list | head -n1)}"
 
 while true; do
-  drive_eject     "$DEVICE"
-  drive_wait "$DEVICE" || continue
+  drive_eject  "$DEVICE"
+  drive_wait   "$DEVICE" || continue
 
   name=$(iso_get_name "$DEVICE")
   work="$BASE_DIR/1.rip/$name"

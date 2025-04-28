@@ -19,12 +19,12 @@ monitor_tmux() {
 
   # If session already exists, attach
   if tmux has-session -t "$session_name" 2>/dev/null; then
-    echo "Attaching to existing tmux session: $session_name"
+    log_info "🪟 Attaching to existing tmux session: $session_name"
     tmux attach-session -t "$session_name"
     return
   fi
 
-  echo "Creating new tmux session: $session_name"
+  log_info "🪟 Creating new tmux session: $session_name"
 
   # Start tmux with our config file
   tmux -f "$BASE_DIR/scrip/tmux.conf" new-session -d -s "$session_name" -c "$BASE_DIR"

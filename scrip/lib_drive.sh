@@ -23,7 +23,11 @@ drive_wait() {
 
 drive_eject() {
   local device="$1"
-  eject "$device" || echo "⚠️ Failed to eject $device"
+  if eject "$device"; then
+    log_info  "⏏️ Ejected $device"
+  else
+    log_error "⚠️ Failed to eject $device"
+  fi
 }
 
 drive_dump() {
