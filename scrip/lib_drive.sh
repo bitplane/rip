@@ -39,8 +39,7 @@ drive_dump() {
     local log_name=$(basename "$output_log")
     
     log_info "🔄 reading disk"
-    ddrescue -b 2048 -n "$device" "$iso_name" "$log_name" &&
-    ddrescue -b 2048 -r3 "$device" "$iso_name" "$log_name"
+    ddrescue -b 2048 -n "$device" "$iso_name" "$log_name"
   )
 }
 
