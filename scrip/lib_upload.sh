@@ -30,7 +30,7 @@ upload_directory() {
       batch=()
       count=0
     fi
-  done
+  done || return 1 # shubshell breaks the first return
   
   # Upload any remaining files
   if [[ ${#batch[@]} -gt 0 ]]; then

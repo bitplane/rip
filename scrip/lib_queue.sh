@@ -21,43 +21,54 @@ queue_wait() {
 # gets the next stage number from the directory name
 # eg: 1.rip -> 2.snip
 queue_get_next_stage() {
-  local queue_dir="$1"
-  local stage=$(echo $(basename "$queue_dir" ) | cut -d'.' -f1)
+  local queue_dir=$(realpath "$1")
+  local stage=$(echo $(basename "$queue_dir") | cut -d'.' -f1)
   local next_stage=$((stage + 1))
-  local next_stage_dir=$(ls -1 "$BASE_DIR"/"${next_stage}."* | grep -v ".skip" | head -n1)
-
+  
+  # Find directories that match the next stage pattern, excluding .skip directories
+  local next_stage_dir=$(find "${BASE_DIR}" -maxdepth 1 -type d -name "${next_stage}.*" ! -name "*.skip" | head -n1)
+  
   if [[ -z "$next_stage_dir" ]]; then
     log_alert "💣 SCRIPT FAILURE: NO NEXT STAGE FOUND FOR $queue_dir"
-    exit 1 # program has totally failed. exit the script
+    return 1
   fi
-  echo "$next_stage_dir"
+  
+  # Return the full absolute path
+  echo "$(realpath "$next_stage_dir")"
 }
 
 queue_success() {
   local work="$1"
-  local next_stage=$(queue_get_next_stage $(dirname "$work"))
-  local dest="$BASE_DIR"/"$next_stage"/"$(basename "$work")"
-
+  local next_stage=$(queue_get_next_stage $(dirname "$work")) || return 1
+  local dest="$next_stage/$(basename "$work")"
+  
   if [[ -d "$dest" ]]; then
-    local ts
-    ts=$(date '+%Y%m%d_%H%M%S')
-    dest="$dest"_"$ts"
+    local ts=$(date '+%Y%m%d_%H%M%S')
+    dest="${dest}_${ts}"
   fi
-
+  
   log_info "🎉 moving $work to $dest"
   mv "$work" "$dest" || return 1
 }
 
+queue_get_fail_dir() {
+  local work_dir=$(realpath "$1")
+  local queue_dir=$(dirname "$work_dir")
+  local fail_dir="${queue_dir}.skip"
+
+  echo "$(realpath "$fail_dir")"
+}
+
 queue_fail() {
   local work="$1"
-  local faildir=$(dirname "$work").skip
+  local faildir=$(queue_get_fail_dir "$work") || return 1
   local dest="$faildir/$(basename "$work")"
 
   if [[ -d "$dest" ]]; then
-    local ts
-    ts=$(date '+%Y%m%d_%H%M%S')
+    local ts=$(date '+%Y%m%d_%H%M%S')
     dest="${faildir}/$(basename "$work")_${ts}"
   fi
+
   log_error "💩 moving $work to $dest"
   mv "$work" "$dest"
 }
