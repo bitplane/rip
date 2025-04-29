@@ -46,7 +46,23 @@ drive_dump() {
     # no scrape, trim, retries, no waiting for 2s, do at least 2k/sec
     # 2k block size, tell me all about it
     ddrescue -n -a 2048 -b 2048 "$device" "$iso_name" "$log_name"
-  )
+
+    awk '
+    /^[0-9a-f]/ {
+        size = "0x" $2 + 0
+        if ($3 == "+") good += size
+        else if ($3 == "-") bad += size
+    }
+    END {
+        total = good + bad
+        if (total == 0) total = 1
+        percent = (good * 100) / total
+        printf("Recovered %.2f%% (%d good / %d total)\n", percent, good, total)
+        if (percent < 95.0) exit 1
+    }
+    ' "$log_name" || exit 1
+
+  ) || exit 1
 }
 
 drive_list() {
