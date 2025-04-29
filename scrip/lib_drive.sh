@@ -43,26 +43,39 @@ drive_dump() {
     local log_name=$(basename "$output_log")
     
     log_info "🔄 reading disk"
-    # no scrape, trim, retries, no waiting for 2s, do at least 2k/sec
-    # 2k block size, tell me all about it
-    ddrescue -n -a 2048 -b 2048 "$device" "$iso_name" "$log_name"
+    if ! timeout 1h ddrescue -n -a 2048 -b 2048 "$device" "$iso_name" "$log_name"; then
+      log_error "⏰ ddrescue either timed out or exited with an error" 
+    fi
+  
+    recovered=$(drive_ddrescue_percent "$log_name")
+    if [ "$recovered" -gt 95 ]; then
+      log_info  "✅ Recovered ${recovered}% (over 95%)"
+    else
+      log_error "❌ Recovered ${recovered}% (needs to be over 95%)"
+      return 1
+    fi
+  ) || return 1
 
-    awk '
-    /^[0-9a-f]/ {
-        size = "0x" $2 + 0
-        if ($3 == "+") good += size
-        else if ($3 == "-") bad += size
-    }
-    END {
-        total = good + bad
-        if (total == 0) total = 1
-        percent = (good * 100) / total
-        printf("Recovered %.2f%% (%d good / %d total)\n", percent, good, total)
-        if (percent < 95.0) exit 1
-    }
-    ' "$log_name" || exit 1
+}
 
-  ) || exit 1
+drive_ddrescue_percent() {
+  local log_file="$1"
+
+  awk '
+  /^0x/ {
+      size = strtonum($2)
+      total += size
+      if ($3 == "+") good += size
+  }
+  END {
+      if (total == 0) {
+          print 0
+          exit
+      }
+      percent = int((good * 100) / total)
+      print percent
+  }
+  ' "$log_file" 2>/dev/null || echo 0
 }
 
 drive_list() {
