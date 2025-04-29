@@ -45,7 +45,7 @@ drive_dump() {
     log_info "🔄 reading disk"
     # no scrape, trim, retries, no waiting for 2s, do at least 2k/sec
     # 2k block size, tell me all about it
-    ddrescue -n -M -a 2048 -b 2048 -vv "$device" "$iso_name" "$log_name"
+    ddrescue -n -a 2048 -b 2048 "$device" "$iso_name" "$log_name"
   )
 }
 

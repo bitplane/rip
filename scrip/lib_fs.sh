@@ -24,7 +24,7 @@ fs_extract_icon() {
 
   # Find autorun.inf (case insensitive)
   local autorun
-  autorun=$(find "$src" -iname 'autorun.inf' -print -quit)
+  autorun=$(find "$src" -iname 'autorun.inf' -print -quit -maxdepth 1)
 
   if [[ -z "$autorun" ]]; then
     return 0
@@ -45,15 +45,17 @@ fs_extract_icon() {
   local full_icon_path="$src/$icon_file"
 
   if [[ ! -f "$full_icon_path" ]]; then
+    log_error "❌ Couldn't find ICO file at $icon_file" >&2
     return 0
   fi
 
   # Convert .ico to .png
   if command -v convert > /dev/null; then
+    log_info "🖼️ converting icon to $dest/icon.png"
     convert "$full_icon_path" "$dest"/icon.png
   else
     log_error "❌ 'convert' command not found. Install ImageMagick to enable icon conversion." >&2
-    cp "$full_icon_path" "$dest"/icon.ico
+    cp "$full_icon_path" "$dest"
     return 0
   fi
 
