@@ -1,0 +1,26 @@
+name: Build rip
+
+on:
+  push:
+    tags:
+      - 'v*'  # Only run on version tags like v1.0.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Build single rip script
+        run: |
+          echo "#!/bin/bash" > rip
+          sed 's/source/cat/g' ./scrip/libs.sh > ./scrip/tmp
+          source ./scrip/tmp >> rip
+          chmod +x rip
+      - name: Upload built rip script
+        uses: softprops/action-gh-release@v2
+        with:
+          files: rip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

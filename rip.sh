@@ -27,8 +27,11 @@ deps() {
   return 0
 }
 
-if ! deps; then
-  exit 1
-fi
 
-monitor_tmux "archive"
+# Run if executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  if ! deps; then
+    exit 1
+  fi
+  monitor_tmux "archive"
+fi
