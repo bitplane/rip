@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Contains functions for handling CD/DVD drives
 
 drive_wait() {
@@ -48,6 +49,9 @@ drive_dump() {
     fi
   
     recovered=$(drive_ddrescue_percent "$log_name")
+
+    meta_add . "recovery.itegrity" <<< "${integrity}%"
+
     if [ "$recovered" -gt 95 ]; then
       log_info  "✅ Recovered ${recovered}% (over 95%)"
     else

@@ -15,7 +15,6 @@ generate_metadata() {
   echo "software"                         |  meta_add "$work" mediatype
   echo "$date"                            |  meta_add "$work" date
   head -n 500 "$work/tree.txt"            |  meta_add "$work" description
-  echo "https://github.com/bitplane/rip"  |  meta_add "$work" source
   
   fs_extract_icon "$MOUNT_POINT" "$work"
 }
