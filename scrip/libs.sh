@@ -4,6 +4,7 @@
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 source "$BASE_DIR/scrip/lib_log.sh"
+source "$BASE_DIR/scrip/lib_ui.sh"
 source "$BASE_DIR/scrip/lib_queue.sh"
 source "$BASE_DIR/scrip/lib_fs.sh"
 source "$BASE_DIR/scrip/lib_meta.sh"
