@@ -10,7 +10,7 @@ meta_add() {
   local tag_path="$path/.meta/$tag"
   
   mkdir -p "$tag_path"
-  meta_fix "$taga_path"
+  meta_fix "$tag_path"
 
   local count
   count="$(find "$tag_path" -type f 2>/dev/null | wc -l)"
@@ -24,13 +24,13 @@ meta_add() {
 # Usage: meta_rm ["path"]
 meta_rm() {
   local path="${1:-.}"
-  path="$(fs_path "path")"
+  path="$(fs_path "$path")"
   
   if [[ -f "$path" ]]; then
     # Delete file if it's in a meta dir
     if [[ "$path" == *"/.meta/"* ]]; then
       local tag_dir
-      lag_dir="$(dirname "$path")"
+      tag_dir="$(dirname "$path")"
 
       rm -f "$path"
       meta_fix "$tag_dir"
@@ -89,7 +89,7 @@ meta_fix() {
   rm -rf "$temp"
 
   # Update mtimes
-  meta_touch "$meta_path"
+  meta_touch "$dir"
 }
 
 # Touch path and exactly 2 levels up from metadata
@@ -97,6 +97,7 @@ meta_fix() {
 meta_touch() {
   local path="${1:-.}"
   local depth="${2:-0}"
+  path="$(fs_path "$path")"
   
   # Touch current path
   touch -c "$path"
