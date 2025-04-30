@@ -62,3 +62,10 @@ fs_extract_icon() {
   return 0
 }
 
+# Gets the full path to an existing file or dir
+# ensuring dirs end with /
+fs_path() {
+    [[ -d $1 ]] && realpath "$1"/ && return
+    [[ -f $1 ]] && realpath "$1"  && return
+    return 1
+}
