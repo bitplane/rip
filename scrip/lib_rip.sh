@@ -6,7 +6,7 @@
 rip_tar() {
     local device="$1"
     local outfile="$2"
-    iso_run_inside "$1" tar -cf "$outfile" . || return 1
+    fs_run_in "$1" tar -cf "$outfile" . || return 1
 }
 
 

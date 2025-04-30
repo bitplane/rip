@@ -16,7 +16,7 @@ generate_metadata() {
   echo "$date"                            |  meta_add date        "$work"
   head -n 500 "$work/tree.txt"            |  meta_add description "$work"
   
-  fs_extract_icon "." "$work"
+  fs_extract_icon "." "$work"             || true
 }
 
 while true; do
@@ -24,7 +24,7 @@ while true; do
   name=$(basename "$work")
   log_info "👀 Extracting metadata for $name"
 
-  if ! iso_run_inside "$work/$name.iso" generate_metadata "$work"; then
+  if ! fs_run_in "$work/$name.iso" generate_metadata "$work"; then
     log_error "❌ Metadata generation failed for $name"
     queue_fail "$work"
     continue

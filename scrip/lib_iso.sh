@@ -9,28 +9,3 @@ iso_get_name() {
     echo "UNKNOWN_$(date +%s)"
   fi
 }
-
-iso_run_inside() {
-  local iso_path="$1"
-  shift
-
-  local tmp_mount
-  tmp_mount=$(mktemp -d)
-  (
-    set -e
-
-    local cleanup
-    cleanup() {
-        popd
-        fusermount -u "$tmp_mount" || true
-        rmdir "$tmp_mount" || true
-    }
-
-    trap cleanup EXIT
-
-    fuseiso "$iso_path" "$tmp_mount"
-
-    pushd "$tmp_mount"
-    "$@"
-  )
-}

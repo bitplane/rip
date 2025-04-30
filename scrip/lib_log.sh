@@ -1,6 +1,7 @@
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOGFILE="$BASE_DIR/archive.log"
 
+
 log() {
   local message="$1"
   echo "$(date '+%Y-%m-%d %H:%M:%S') "[$$]" $message" >> "$LOGFILE"
