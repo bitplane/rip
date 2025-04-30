@@ -8,10 +8,10 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Source libraries
 source "$BASE_DIR/scrip/libs.sh"
 
-# Global vars (minimized)
+# Global vars
 _DIP_DIR="$BASE_DIR"
 _DIP_CURSOR=0
-_DIP_VIEW="browse"  # browse, metadata, files
+_DIP_VIEW="browse"
 _DIP_ITEM=""
 _DIP_TAG=""
 _DIP_ENTRIES=()
@@ -44,48 +44,31 @@ _dip_out() {
   exit 0
 }
 
-# Get cached directory listing
-_dip_get_listing() {
-  local dir="$1"
-  local cache_key=$(stat -c "%i_%Y" "$dir" 2>/dev/null || echo "none")
-  local cache_file="$_DIP_CACHE_DIR/listing_$cache_key"
-  
-  # Use cache if exists
-  if [[ -f "$cache_file" ]]; then
-    cat "$cache_file"
-    return
-  fi
-  
-  # Generate and cache listing
-  find "$dir" -maxdepth 1 -mindepth 1 -type d -not -path "*/\.*" -printf "%f\n" | sort > "$cache_file"
-  cat "$cache_file"
-}
-
-# Get emoji for directory
+# Get stage emoji if applicable
 _dip_get_emoji() {
   local dir="$1"
   local base=$(basename "$dir")
-  local emoji=" "
   
   # Skip dirs get ❌
   if [[ $base =~ \.skip$ ]]; then
-    emoji="❌"
-  # Stage directory or in stage
-  elif [[ $base =~ ^[1-5]\. ]]; then
+    echo "❌"
+    return
+  fi
+  
+  # Check if the directory is a numbered stage or under a stage
+  if [[ $base =~ ^[1-5]\. ]]; then
     local num=${base:0:1}
-    local emojis=("💽" "👀" "📦" "🔝" "🍻")
-    emoji="${emojis[$((num-1))]}"
+    echo "${_DIP_STAGE_EMOJI[$((num-1))]}"
   elif [[ $(dirname "$dir") =~ ^.*/[1-5]\. ]]; then
     local parent=$(basename "$(dirname "$dir")")
     local num=${parent:0:1}
-    local emojis=("💽" "👀" "📦" "🔝" "🍻")
-    emoji="${emojis[$((num-1))]}"
+    echo "${_DIP_STAGE_EMOJI[$((num-1))]}"
+  else
+    echo " "
   fi
-  
-  echo "$emoji"
 }
 
-# List directory entries with optional smart caching
+# List directory entries
 _dip_list_entries() {
   # Reset entries array
   _DIP_ENTRIES=()
@@ -93,86 +76,57 @@ _dip_list_entries() {
   # Add parent directory if not at BASE_DIR
   [[ "$_DIP_DIR" != "$BASE_DIR" ]] && _DIP_ENTRIES+=("..")
   
-  # Add directories (using cache if available)
+  # Add directories
   while IFS= read -r entry; do
     [[ -z "$entry" ]] && continue
     _DIP_ENTRIES+=("$entry")
-  done < <(_dip_get_listing "$_DIP_DIR")
+  done < <(find "$_DIP_DIR" -maxdepth 1 -mindepth 1 -type d -not -path "*/\.*" -printf "%f\n" | sort)
   
   # Adjust cursor position if needed
   [[ $_DIP_CURSOR -ge ${#_DIP_ENTRIES[@]} ]] && _DIP_CURSOR=$((${#_DIP_ENTRIES[@]} - 1))
   [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
 }
 
-# List metadata tags with caching
+# List metadata tags
 _dip_list_tags() {
   # Reset entries array
   _DIP_ENTRIES=()
   
-  # Get cache key based on metadata directory mtime
-  local meta_dir="$_DIP_DIR/$_DIP_ITEM/.meta"
-  local cache_key=$(stat -c "%i_%Y" "$meta_dir" 2>/dev/null || echo "none")
-  local cache_file="$_DIP_CACHE_DIR/tags_$cache_key"
+  # Add tags
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    _DIP_ENTRIES+=("$tag")
+  done < <(find "$_DIP_DIR/$_DIP_ITEM/.meta" -maxdepth 1 -mindepth 1 -type d -printf "%f\n" 2>/dev/null | sort)
   
-  # Use cache if exists
-  if [[ -f "$cache_file" ]]; then
-    mapfile -t _DIP_ENTRIES < "$cache_file"
-  else
-    # Get tags from meta_tags function
-    while IFS= read -r tag; do
-      [[ -z "$tag" ]] && continue
-      _DIP_ENTRIES+=("$tag")
-    done < <(meta_tags "$_DIP_DIR/$_DIP_ITEM")
-    
-    # Cache result if entries found
-    if [[ ${#_DIP_ENTRIES[@]} -gt 0 ]]; then
-      printf "%s\n" "${_DIP_ENTRIES[@]}" > "$cache_file"
-    fi
-  fi
-  
-  # Adjust cursor position
+  # Adjust cursor position if needed
   [[ $_DIP_CURSOR -ge ${#_DIP_ENTRIES[@]} ]] && _DIP_CURSOR=$((${#_DIP_ENTRIES[@]} - 1))
   [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
 }
 
-# List tag files with caching
+# List tag files
 _dip_list_files() {
   # Reset entries array
   _DIP_ENTRIES=()
   
-  # Get cache key based on tag directory mtime
-  local tag_dir="$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG"
-  local cache_key=$(stat -c "%i_%Y" "$tag_dir" 2>/dev/null || echo "none")
-  local cache_file="$_DIP_CACHE_DIR/files_$cache_key"
+  # Add files
+  while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
+    _DIP_ENTRIES+=("$file")
+  done < <(find "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG" -maxdepth 1 -mindepth 1 -type f -printf "%f\n" 2>/dev/null | sort -n)
   
-  # Use cache if exists
-  if [[ -f "$cache_file" ]]; then
-    mapfile -t _DIP_ENTRIES < "$cache_file"
-  else
-    # Get files
-    while IFS= read -r file; do
-      [[ -z "$file" ]] && continue
-      _DIP_ENTRIES+=("$file")
-    done < <(find "$tag_dir" -maxdepth 1 -mindepth 1 -type f -printf "%f\n" 2>/dev/null | sort -n)
-    
-    # Cache result if entries found
-    if [[ ${#_DIP_ENTRIES[@]} -gt 0 ]]; then
-      printf "%s\n" "${_DIP_ENTRIES[@]}" > "$cache_file"
-    fi
-  fi
-  
-  # Adjust cursor position
+  # Adjust cursor position if needed
   [[ $_DIP_CURSOR -ge ${#_DIP_ENTRIES[@]} ]] && _DIP_CURSOR=$((${#_DIP_ENTRIES[@]} - 1))
   [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
 }
 
-# Display a row with or without highlighting
+# Draw a single row
 _dip_row() {
   local selected=$1
   local symbol=$2
   local text=$3
   local details=${4:-""}
   
+  # Format based on selection
   if [[ $selected -eq 1 ]]; then
     tput rev; tput bold
     printf " %s %s " "$symbol" "$text"
@@ -234,27 +188,29 @@ _dip_prompt() {
 _dip_draw() {
   local term_height=$(tput lines)
   local visible_rows=$((term_height - 4))
-  local temp_output=$(mktemp)
   
-  # Header
-  tput bold > "$temp_output"
+  # Clear screen
+  clear
+  
+  # Draw header
+  tput bold
   case $_DIP_VIEW in
     browse)
-      printf "Directory: %s\r\n" "$_DIP_DIR" >> "$temp_output"
+      printf "Directory: %s\r\n" "$_DIP_DIR"
       ;;
     metadata)
-      printf "Metadata for: %s\r\n" "$_DIP_ITEM" >> "$temp_output"
+      printf "Metadata for: %s\r\n" "$_DIP_ITEM"
       ;;
     files)
-      printf "Tag: %s in %s\r\n" "$_DIP_TAG" "$_DIP_ITEM" >> "$temp_output"
+      printf "Tag: %s in %s\r\n" "$_DIP_TAG" "$_DIP_ITEM"
       ;;
   esac
-  tput sgr0 >> "$temp_output"
+  tput sgr0
   
-  # Divider
-  printf "────────────────────────────────────────────────────\r\n" >> "$temp_output"
+  # Draw divider
+  printf "────────────────────────────────────────────────────\r\n"
   
-  # Calculate scroll position
+  # Calculate start index for scrolling
   local start_idx=0
   if [[ ${#_DIP_ENTRIES[@]} -gt $visible_rows ]]; then
     local half_view=$((visible_rows / 2))
@@ -268,11 +224,10 @@ _dip_draw() {
     fi
   fi
   
-  # End index
+  # Draw entries
   local end_idx=$((start_idx + visible_rows))
   [[ $end_idx -gt ${#_DIP_ENTRIES[@]} ]] && end_idx=${#_DIP_ENTRIES[@]}
   
-  # Draw entries
   for ((i=start_idx; i<end_idx; i++)); do
     local entry="${_DIP_ENTRIES[$i]}"
     local selected=0
@@ -286,47 +241,40 @@ _dip_draw() {
         [[ "$entry" != ".." ]] && symbol=$(_dip_get_emoji "$_DIP_DIR/$entry")
         
         if [[ "$entry" != ".." && -d "$_DIP_DIR/$entry/.meta" ]]; then
-          local tags=$(meta_tags "$_DIP_DIR/$entry" | tr '\n' ' ' | head -c 40)
+          local tags=$(find "$_DIP_DIR/$entry/.meta" -maxdepth 1 -mindepth 1 -type d -printf "%f " 2>/dev/null | head -c 40)
           details="${tags:-(no tags)}"
-          
-          # Capture the output of _dip_row
-          _dip_row $selected "$symbol" "[$entry]" "$details" >> "$temp_output"
+          _dip_row $selected "$symbol" "[$entry]" "$details"
         else
-          _dip_row $selected "$symbol" "$entry" >> "$temp_output"
+          _dip_row $selected "$symbol" "$entry"
         fi
         ;;
       metadata)
-        local count=$(meta_count "$entry" "$_DIP_DIR/$_DIP_ITEM")
+        local count=$(find "$_DIP_DIR/$_DIP_ITEM/.meta/$entry" -type f 2>/dev/null | wc -l)
         
         if [[ $count -gt 0 ]]; then
-          local preview=$(meta_get "$entry" "$_DIP_DIR/$_DIP_ITEM" | head -n 1 | head -c 40)
+          local preview=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$entry/0" 2>/dev/null | head -n 1 | cut -c 1-40)
           [[ ${#preview} -gt 39 ]] && preview="${preview:0:37}..."
           details="$preview"
         else
           details="(empty)"
         fi
         
-        _dip_row $selected "$symbol" "$entry ($count):" "$details" >> "$temp_output"
+        _dip_row $selected "$symbol" "$entry ($count):" "$details"
         ;;
       files)
-        local content=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$entry" 2>/dev/null | head -n 1 | head -c 50)
+        local content=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$entry" 2>/dev/null | head -n 1 | cut -c 1-50)
         [[ ${#content} -gt 49 ]] && content="${content:0:47}..."
         
-        _dip_row $selected "$symbol" "$entry:" "$content" >> "$temp_output"
+        _dip_row $selected "$symbol" "$entry:" "$content"
         ;;
     esac
   done
   
-  # Status bar position
-  printf "\033[%d;0H" $((term_height - 1)) >> "$temp_output"
-  tput bold >> "$temp_output"
-  printf "%s\r\n" "$(_dip_status_bar)" >> "$temp_output"
-  tput sgr0 >> "$temp_output"
-  
-  # Output everything at once
-  clear
-  cat "$temp_output"
-  rm "$temp_output"
+  # Draw status bar
+  tput cup $((term_height - 2)) 0
+  tput bold
+  printf "%s\r\n" "$(_dip_status_bar)"
+  tput sgr0
 }
 
 # Add metadata to item
@@ -353,9 +301,10 @@ _dip_add_tag() {
   echo -n "Enter tag name: "
   read -r tag
   
-  # If not empty, create tag and edit first entry
+  # If not empty, create tag and add first entry
   if [[ -n "$tag" ]]; then
-    meta_new "$tag" "$_DIP_DIR/$_DIP_ITEM"
+    mkdir -p "$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
+    _dip_add_entry "$tag"
     _dip_list_tags
   fi
   
@@ -366,15 +315,67 @@ _dip_add_tag() {
 
 # Add entry to tag
 _dip_add_entry() {
-  meta_new "$_DIP_TAG" "$_DIP_DIR/$_DIP_ITEM"
+  local tag="${1:-$_DIP_TAG}"
+  local path="$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
+  local count=$(find "$path" -type f 2>/dev/null | wc -l)
+  local temp=$(mktemp)
+  
+  # Get editor (git editor preferred)
+  local editor=${VISUAL:-${EDITOR:-vi}}
+  local git_editor=$(git config --get core.editor 2>/dev/null)
+  [[ -n "$git_editor" ]] && editor="$git_editor"
+  
+  # Return to normal terminal for editor
+  tput rmcup
+  tput cnorm
+  stty echo -raw
+  
+  # Edit file
+  $editor "$temp"
+  
+  # Save if not empty
+  if [[ -s "$temp" ]]; then
+    cat "$temp" > "$path/$count"
+    meta_touch "$path"
+  fi
+  
+  # Cleanup
+  rm "$temp"
+  
+  # Return to TUI mode
+  tput smcup
+  stty -echo raw
+  tput civis
+  
+  # Refresh list
   _dip_list_files
 }
 
 # Edit tag entry
 _dip_edit_entry() {
   local file="${_DIP_ENTRIES[$_DIP_CURSOR]}"
-  meta_edit "$_DIP_TAG" "$file" "$_DIP_DIR/$_DIP_ITEM"
-  _dip_list_files
+  local path="$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$file"
+  
+  # Get editor
+  local editor=${VISUAL:-${EDITOR:-vi}}
+  local git_editor=$(git config --get core.editor 2>/dev/null)
+  [[ -n "$git_editor" ]] && editor="$git_editor"
+  
+  # Return to normal terminal for editor
+  tput rmcup
+  tput cnorm
+  stty echo -raw
+  
+  # Edit file
+  $editor "$path"
+  
+  # Update mtimes to invalidate any caches
+  meta_touch "$path"
+  
+  # Return to TUI mode
+  tput smcup
+  stty -echo raw
+  tput civis
 }
 
 # Delete tag entry with confirmation
@@ -382,7 +383,7 @@ _dip_delete_entry() {
   local file="${_DIP_ENTRIES[$_DIP_CURSOR]}"
   
   if _dip_prompt "Delete entry $file? [y/N]" "N"; then
-    meta_del_entry "$_DIP_TAG" "$file" "$_DIP_DIR/$_DIP_ITEM"
+    meta_rm "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$file"
     _dip_list_files
   fi
 }
@@ -392,7 +393,7 @@ _dip_delete_tag() {
   local tag="${_DIP_ENTRIES[$_DIP_CURSOR]}"
   
   if _dip_prompt "Delete tag $tag and ALL entries? [y/N]" "N"; then
-    meta_del_tag "$tag" "$_DIP_DIR/$_DIP_ITEM"
+    meta_rm "$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
     _dip_list_tags
   fi
 }
@@ -529,4 +530,39 @@ _dip_key() {
           _dip_delete_meta
           ;;
         metadata)
-          [[ ${#_DIP_
+          [[ ${#_DIP_ENTRIES[@]} -eq 0 ]] && return
+          _dip_delete_tag
+          ;;
+        files)
+          [[ ${#_DIP_ENTRIES[@]} -eq 0 ]] && return
+          _dip_delete_entry
+          ;;
+      esac
+      ;;
+    e) # Edit
+      [[ $_DIP_VIEW == "files" && ${#_DIP_ENTRIES[@]} -gt 0 ]] && {
+        _dip_edit_entry
+      }
+      ;;
+    q|$'\x1b') # Quit
+      _dip_out
+      ;;
+  esac
+}
+
+# Main function
+dip_main() {
+  _dip_in
+  _dip_list_entries
+  
+  # Main loop
+  while true; do
+    _dip_draw
+    _dip_key
+  done
+}
+
+# Run if executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  dip_main
+fi

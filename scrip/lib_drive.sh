@@ -51,7 +51,7 @@ drive_dump() {
   
     recovered=$(drive_ddrescue_percent "$log_name")
 
-    meta_add . "recovery.itegrity" <<< "${recovered}%"
+    meta_add "recovery.itegrity" <<< "${recovered}%"
 
     if [ "$recovered" -gt 95 ]; then
       log_info  "✅ Recovered ${recovered}% (over 95%)"

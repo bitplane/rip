@@ -12,7 +12,7 @@ while true; do
   work="$BASE_DIR/1.rip/$name"
 
   mkdir -p "$work"
-  meta_add "$work" "scanner" <<< "rip (https://github.com/bitplane/rip)"
+  meta_add "scanner" "$work" <<< "rip (https://github.com/bitplane/rip)"
 
   log_info "⬇️ ripping $name"
   if ! drive_dump "$DEVICE" \
