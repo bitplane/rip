@@ -33,8 +33,8 @@ while true; do
 
         log_error  "❌ ddrescue failed for $name, using TAR"
  
-        rm  "$work/$name.iso" \
-            "$work/$name.ddrescue.log*"
+        rm  "$work/$name".iso \
+            "$work/$name".ddrescue.log*
 
     else
         # no need for the tar file!

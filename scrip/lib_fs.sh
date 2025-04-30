@@ -91,16 +91,19 @@ fs_run_in() {
 
     local cleanup
     cleanup() {
-        popd
-        fusermount -u "$tmp_mount" || true
-        rmdir "$tmp_mount" || true
+        popd           > /dev/null
+        fusermount -u  "$tmp_mount" || true
+        rmdir          "$tmp_mount" || true
     }
 
     trap cleanup EXIT
 
-    archivemount "$path" "$tmp_mount"
+    case "$path" in
+      *.iso | /dev/* ) fuseiso      "$path" "$tmp_mount" ;;
+      *)               archivemount "$path" "$tmp_mount" ;;
+    esac
 
-    pushd "$tmp_mount"
+    pushd "$tmp_mount" > /dev/null
     "$@"
   )
 }

@@ -28,7 +28,7 @@ queue_get_next_stage() {
   queue_dir=$(realpath "$1")
   stage=$(basename "$queue_dir" | cut -d'.' -f1)
   next_stage=$((stage + 1))
-  next_stage_dir=$(find "${BASE_DIR}" -maxdepth 1 -type d -name "${next_stage}.*" ! -name "*.skip" | head -n1)
+  next_stage_dir=$(find "${BASE_DIR}" -maxdepth 1 -type d -name "${next_stage}.*" ! -name "*.*.*" | head -n1)
   
   if [[ -z "$next_stage_dir" ]]; then
     log_alert "💣 SCRIPT FAILURE: NO NEXT STAGE FOUND FOR $queue_dir"
