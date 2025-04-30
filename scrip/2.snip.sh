@@ -6,17 +6,17 @@ source "$BASE_DIR/scrip/libs.sh"
 # Run INSIDE the ISO mount, with $MOUNT_POINT set and with set -e
 generate_metadata() {
   local work="$1"
-  fs_tree "$MOUNT_POINT" >> "$work"/tree.txt
+  fs_tree "." >> "$work"/tree.txt
 
   local name
   date=$(fs_last_update "$MOUNT_POINT")
   title="$date $(echo $(basename "$work") | tr '_' ' ')"
-  echo "$title"                           |  meta_add title        "$work"
-  echo software                           |  meta_add mediatypee   "$work"
-  echo "$date"                            |  meta_add datee        "$work"
-  head -n 500 "$work/tree.txt"            |  meta_add descriptione "$work"
+  echo "$title"                           |  meta_add title       "$work"
+  echo software                           |  meta_add mediatype   "$work"
+  echo "$date"                            |  meta_add date        "$work"
+  head -n 500 "$work/tree.txt"            |  meta_add description "$work"
   
-  fs_extract_icon "$MOUNT_POINT" "$work"
+  fs_extract_icon "." "$work"
 }
 
 while true; do
@@ -24,7 +24,7 @@ while true; do
   name=$(basename "$work")
   log_info "👀 Extracting metadata for $name"
 
-  if ! mount_and_run "$work/$name.iso" generate_metadata "$work"; then
+  if ! iso_run_inside "$work/$name.iso" generate_metadata "$work"; then
     log_error "❌ Metadata generation failed for $name"
     queue_fail "$work"
     continue

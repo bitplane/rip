@@ -5,7 +5,7 @@ source ./scrip/libs.sh
 deps() {
   local missing=()
 
-  for cmd in tmux fuseiso ddrescue tree ia eject isoinfo xz; do
+  for cmd in tmux fuseiso ddrescue tree ia eject isoinfo xz tar; do
     if ! command -v "$cmd" &>/dev/null; then
       missing+=("$cmd")
     fi

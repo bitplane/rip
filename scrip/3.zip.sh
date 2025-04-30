@@ -7,7 +7,7 @@ while true; do
   name=$(basename "$work")
   log_info "📦 Compressing $name"
 
-  if ! compress_iso "$work"; then
+  if ! compress_bins "$work"; then
     log_error "❌ compress_iso failed for $name"
     queue_fail "$work"
     continue

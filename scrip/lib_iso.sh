@@ -10,20 +10,27 @@ iso_get_name() {
   fi
 }
 
-mount_and_run() {
+iso_run_inside() {
   local iso_path="$1"
   shift
 
   local tmp_mount
   tmp_mount=$(mktemp -d)
-
   (
     set -e
-    trap 'fusermount -u "$tmp_mount" || true; rmdir "$tmp_mount" || true' EXIT
+
+    local cleanup
+    cleanup() {
+        popd
+        fusermount -u "$tmp_mount" || true
+        rmdir "$tmp_mount" || true
+    }
+
+    trap cleanup EXIT
 
     fuseiso "$iso_path" "$tmp_mount"
 
-    export MOUNT_POINT="$tmp_mount"
+    pushd "$tmp_mount"
     "$@"
   )
 }
