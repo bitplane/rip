@@ -25,7 +25,7 @@ _dip_in() {
   
   _DIP_CACHE_DIR="$(mktmp)"
   
-  trap _dip_out EXIT INT TERM
+  shell_trap "_dip_out $_DIP_CACHE_DIR"
 }
 
 # Cleanup and exit
@@ -36,33 +36,9 @@ _dip_out() {
   stty echo -raw
 
   # Clean up cache
-  rm -rf "$_DIP_CACHE_DIR" 2>/dev/null
+  rm -rf "$1" 2>/dev/null
   
   exit 0
-}
-
-# Get stage emoji if applicable
-_dip_get_emoji() {
-  local dir="$1"
-  local base=$(basename "$dir")
-  
-  # Skip dirs get ❌
-  if [[ $base =~ \.skip$ ]]; then
-    echo "❌"
-    return
-  fi
-  
-  # Check if the directory is a numbered stage or under a stage
-  if [[ $base =~ ^[1-5]\. ]]; then
-    local num=${base:0:1}
-    echo "${_DIP_STAGE_EMOJI[$((num-1))]}"
-  elif [[ $(dirname "$dir") =~ ^.*/[1-5]\. ]]; then
-    local parent=$(basename "$(dirname "$dir")")
-    local num=${parent:0:1}
-    echo "${_DIP_STAGE_EMOJI[$((num-1))]}"
-  else
-    echo " "
-  fi
 }
 
 # List directory entries
@@ -204,9 +180,6 @@ _dip_draw() {
   esac
   tput sgr0
   
-  # Draw divider
-  printf "────────────────────────────────────────────────────\r\n"
-  
   # Calculate start index for scrolling
   local start_idx=0
   if [[ ${#_DIP_ENTRIES[@]} -gt $visible_rows ]]; then
@@ -235,7 +208,7 @@ _dip_draw() {
     
     case $_DIP_VIEW in
       browse)
-        [[ "$entry" != ".." ]] && symbol=$(_dip_get_emoji "$_DIP_DIR/$entry")
+        [[ "$entry" != ".." ]] && symbol=$(ui_emoji "$_DIP_DIR/$entry")
         
         if [[ "$entry" != ".." && -d "$_DIP_DIR/$entry/.meta" ]]; then
           local tags=$(find "$_DIP_DIR/$entry/.meta" -maxdepth 1 -mindepth 1 -type d -printf "%f " 2>/dev/null | head -c 40)

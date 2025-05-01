@@ -97,14 +97,7 @@ fs_run_in() {
   (
     set -e
 
-    local cleanup
-    cleanup() {
-        popd           > /dev/null
-        fusermount -u  "$tmp_mount" || true
-        rmdir          "$tmp_mount" || true
-    }
-
-    shell_trap cleanup
+    shell_trap "_fs_run_in_cleanup $tmp_mount"
 
     case "$path" in
       *.iso | /dev/* ) fuseiso      "$path" "$tmp_mount" ;;
@@ -114,6 +107,12 @@ fs_run_in() {
     pushd "$tmp_mount" > /dev/null
     "$@"
   )
+}
+
+_fs_run_in_cleanup() {
+    popd > /dev/null
+    fusermount -u  "$1" || true
+    rmdir          "$1" || true
 }
 
 # Gets the real path given a case insensitive one
