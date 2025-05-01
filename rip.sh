@@ -19,7 +19,7 @@ deps() {
     echo "❌ Missing required tools: ${missing[*]}" >&2
     echo "Please install the missing dependencies:" >&2
     echo "  sudo apt install tmux fuseiso gddrescue tree" >&2
-    echo "  pip install internetarchive" >&2
+    echo "  pip install internetarchive~=5.3" >&2
     return 1
   fi
 

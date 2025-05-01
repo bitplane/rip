@@ -104,7 +104,7 @@ fs_run_in() {
         rmdir          "$tmp_mount" || true
     }
 
-    trap cleanup EXIT
+    shell_trap cleanup
 
     case "$path" in
       *.iso | /dev/* ) fuseiso      "$path" "$tmp_mount" ;;

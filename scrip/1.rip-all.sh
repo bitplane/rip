@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -m  # Enable job control
 set -o monitor
-trap 'kill -- -$$ 2>/dev/null; exit 1' INT TERM
+shell_trap 'kill -- -$$ 2>/dev/null; exit 1'
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$BASE_DIR/scrip/libs.sh"

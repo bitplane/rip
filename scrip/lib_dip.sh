@@ -15,7 +15,6 @@ _DIP_VIEW="browse"
 _DIP_ITEM=""
 _DIP_TAG=""
 _DIP_ENTRIES=()
-_DIP_CACHE_DIR="/tmp/dip-cache-$$"
 
 # Initialize terminal
 _dip_in() {
@@ -24,10 +23,8 @@ _dip_in() {
   tput civis
   stty -echo raw
   
-  # Cache dir
-  mkdir -p "$_DIP_CACHE_DIR"
+  _DIP_CACHE_DIR="$(mktmp)"
   
-  # Set trap
   trap _dip_out EXIT INT TERM
 }
 
@@ -37,7 +34,7 @@ _dip_out() {
   tput rmcup
   tput cnorm
   stty echo -raw
-  
+
   # Clean up cache
   rm -rf "$_DIP_CACHE_DIR" 2>/dev/null
   
