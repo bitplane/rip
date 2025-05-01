@@ -7,10 +7,9 @@ deps() {
 
   for cmd in ia tmux \
              fuseiso isoinfo \
-             ddrescue tree \
-             eject isoinfo \
-             xz tar \
-             icotool wrestool; do
+             ddrescue eject
+             xz tar tree \
+             icotool wrestool magick; do
     if ! command -v "$cmd" &>/dev/null; then
       missing+=("$cmd")
     fi
