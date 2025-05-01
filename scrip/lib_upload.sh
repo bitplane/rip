@@ -22,14 +22,16 @@ upload_directory() {
     local batch_size=50
     local batch=()
     local count=0
+    local total=0
   
     for file in "${files[@]}"; do
       batch+=("${file#./}")
       ((count++))
+      ((total++))
 
       if [[ $count -eq $batch_size ]]; then
         ia upload -c --keep-directories --retries=100 --sleep=120 "${meta_args[@]}" "$item_name" "${batch[@]}" || return 1
-        echo Uploaded "$(du -ch "${batch[@]}" | tail -1 | cut -f 1)"...
+        echo Uploaded "$(du -ch "${batch[@]}" | tail -1 | cut -f 1) ($total files in total)"...
         batch=()
         count=0
       fi
