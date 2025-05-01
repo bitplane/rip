@@ -37,36 +37,44 @@ fs_extract_icon() {
 
     local icon_path
     local icon_index
-    read icon_path icon_index <<<"$(awk -F'[=,]' \
-        'tolower($1)=="icon"{print $2, $3; exit}' "$autorun")"
+    IFS=$'\t' read -r icon_path icon_index < <(
+        awk -F'[=,]' '
+            tolower($1) == "icon" {
+                gsub(/^[ \t]+|[ \t]+$/, "", $2)
+                gsub(/^[ \t]+|[ \t]+$/, "", $3)
+                print $2 "\t" $3
+                exit
+            }
+        ' "$autorun"
+    )
 
     icon_index=${icon_index:-0}
-    icon_path=${icon_path//\\//}
-    full_icon_path="$src/$icon_path"
+    icon_path=$(echo $icon_path | tr '\\' '/')
+    icon_path=${icon_path//$'\r'/}
+    icon_path=$(fs_insensitive "$icon_path" "$src") || return 1
 
-    [[ -f "$full_icon_path" ]] || return 1
+    [[ -z "$icon_path" ]] && return 1
 
-    case "${full_icon_path,,}" in
+    case "${icon_path,,}" in
       *.ico)
-        # keep what you already do
-        magick convert "${full_icon_path}[0]" -layers merge \
-                       "$dest/icon.png"
+        magick "${icon_path}[0]" -layers merge \
+               "$dest/icon.png"
         ;;
       *.exe|*.dll)
-        mkdir -p "$dest/.work"
-        wrestool -x --type=14 --name="$icon_index" "$full_icon_path" \
-          | icotool -x -o "$dest/.work" -
+        tmpdir=$(mktemp -d)
+
+        wrestool -x --type=14 --name="$icon_index" "$icon_path" \
+          | icotool -x -o "$tmpdir" -
 
         # pick the biggest frame (usually last) and move it up
-        largest=$(ls -v "$dest/.work"/*.png | tail -n1)
+        largest=$(ls -v "$tmpdir"/*.png | tail -n1)
         mv "$largest" "$dest/icon.png"
-        rm -r "$dest/.work"
+
+        rm -r "$tmpdir"
         ;;
       *)
         return 1
     esac
-
-    magick convert "$full_icon_path" "$dest/icon.png" || return 1
 }
 
 # Gets the full path to an existing file or dir
@@ -106,5 +114,21 @@ fs_run_in() {
     pushd "$tmp_mount" > /dev/null
     "$@"
   )
+}
+
+# Gets the real path given a case insensitive one
+# Usage: path=$(fs_insensitive PaTH [base])
+fs_insensitive() {
+    local path="$1"
+    local base="${2:-.}"
+    IFS='/' read -ra parts <<< "$path"
+    for part in "${parts[@]}"; do
+        match=$(find "$base" -mindepth 1 -maxdepth 1 -iname "$part" -print -quit)
+        if [[ -z "$match" ]]; then
+            return 1  # fail
+        fi
+        base="$match"
+    done
+    echo "$base"
 }
 
