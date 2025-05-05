@@ -101,7 +101,6 @@ process_page() {
                 if (( $(echo "$page_width > $page_height" | bc -l) )); then
                     is_landscape=true
                     adjusted_max_width=$((max_width * 2))
-                    echo "Landscape page detected (#$page_num), using width: $adjusted_max_width" >&2
                 fi
             fi
         fi
@@ -305,7 +304,7 @@ main() {
     echo -e "   - Original size: ${MAGENTA}$ORIGINAL_SIZE_HUMAN${RESET}, new size: ${MAGENTA}$NEW_SIZE_HUMAN${RESET}, saved: ${GREEN}$SAVED_BYTES_HUMAN${RESET} (${GREEN}$SAVED_PERCENT%${RESET})"
 
     # Check if saved percent is suspiciously high
-    if [ $SAVED_PERCENT -gt 95 ]; then
+    if [ $SAVED_PERCENT -gt 97 ]; then
         echo -e " - ${RED}Saved percent is suspiciously high (${SAVED_PERCENT}%). Keeping original PDF.${RESET}"
         rm -rf "$TEMP_DIR"
         exit 1
