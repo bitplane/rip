@@ -46,8 +46,8 @@ Each step in the pipeline is just a dir with files in it. The main dir name is
 the name of the internet archive item, and everything that doesn't begin with
 `.` will be uploaded. If something fails, see `archive.log` to see why.
 
-The `.date` file is used to tag the item with a creation date. The `.info` one
-is for the main description.
+Metadata is kept in the `.meta` dir, with tags as subdirs. You can inspect and
+edit the metadata with `dip`.
 
 ## 🤓 `MANUAL.DOC`
 
@@ -67,8 +67,8 @@ All files that don't start with a `.` will be uploaded.
 Metadata fields are stored in `.meta/name/n` and can be added with the helper
 in `lib_upload.sh` like so:
 ```sh
-echo "weather"    | meta_add "./met-office-climate-data" subject
-echo "historical" | meta_add "./met-office-climate-data" subject
+echo "weather"    | meta_add subject "./met-office-climate-data"
+echo "historical" | meta_add subject "./met-office-climate-data"
 ```
 
 ## 🔗 `PROJECT.LNK`
