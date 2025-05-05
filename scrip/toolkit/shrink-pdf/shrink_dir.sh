@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Define colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
 # Ensure a directory is provided as argument
 if [ $# -ne 1 ]; then
     echo "Usage: $0 directory_with_pdfs"
@@ -28,15 +38,20 @@ SAVED_TOTAL=0
 START_TIME=$(date +%s)
 LAST_DIR=""
 
+# Function to strip ANSI color codes for log file
+strip_colors() {
+    sed 's/\x1b\[[0-9;]*m//g'
+}
+
 # Start logging and console output
 {
-    echo "===== PDF Compression Summary ====="
-    echo "Started: $(date)"
-    echo "Directory: $INPUT_DIR"
-    echo "Files to process: $TOTAL_FILES"
-    echo "Original size: $(numfmt --to=iec-i --suffix=B $ORIGINAL_SIZE)"
-    echo "Log file: $LOG_FILE"
-    echo "=================================="
+    echo -e "${BOLD}===== PDF Compression Summary =====${RESET}"
+    echo -e "Started: $(date)"
+    echo -e "Directory: ${CYAN}$INPUT_DIR${RESET}"
+    echo -e "Files to process: ${YELLOW}$TOTAL_FILES${RESET}"
+    echo -e "Original size: ${MAGENTA}$(numfmt --to=iec-i --suffix=B $ORIGINAL_SIZE)${RESET}"
+    echo -e "Log file: $LOG_FILE"
+    echo -e "${BOLD}==================================${RESET}"
     echo ""
 
     # Process each PDF file
@@ -48,11 +63,11 @@ LAST_DIR=""
         
         # Print directory path when changing to a new directory
         if [ "$CURRENT_DIR" != "$LAST_DIR" ]; then
-            echo "Directory: $CURRENT_DIR"
+            echo -e "Directory: ${CYAN}$CURRENT_DIR${RESET}"
             LAST_DIR="$CURRENT_DIR"
         fi
         
-        echo "File $PROCESSED/$TOTAL_FILES: \"$FILE_NAME\""
+        echo -e "File ${YELLOW}$PROCESSED${RESET}/${YELLOW}$TOTAL_FILES${RESET}: \"${BOLD}$FILE_NAME${RESET}\""
         
         # Get size before processing
         FILE_SIZE_BEFORE=$(du -b "$pdf_file" | cut -f1)
@@ -60,7 +75,7 @@ LAST_DIR=""
         # Record time before processing
         FILE_START_TIME=$(date +%s)
         
-        # Process the PDF file
+        # Process the PDF file - quote the filename to handle spaces
         ./shrink_pdf.sh "$pdf_file"
         
         # Record time after processing
@@ -76,10 +91,10 @@ LAST_DIR=""
             
             FILE_SPEED=$(echo "scale=2; ${FILE_SIZE_BEFORE} / 1048576 / ${FILE_PROCESS_TIME}" | bc)
             
-            echo "=> Saved: $(numfmt --to=iec-i --suffix=B $FILE_SAVED) ($SAVED_PERCENT%)"
-            echo "=> Processing time: ${FILE_PROCESS_TIME}s (${FILE_SPEED} MB/s)"
+            echo -e "=> Saved: ${GREEN}$(numfmt --to=iec-i --suffix=B $FILE_SAVED)${RESET} (${GREEN}$SAVED_PERCENT%${RESET})"
+            echo -e "=> Processing time: ${YELLOW}${FILE_PROCESS_TIME}s${RESET} (${BLUE}${FILE_SPEED} MB/s${RESET})"
         else
-            echo "=> Unchanged: Savings below threshold or processing failed"
+            echo -e "=> ${RED}Unchanged${RESET}: Savings below threshold or processing failed"
         fi
         
         # Calculate average speed so far
@@ -90,13 +105,13 @@ LAST_DIR=""
             REMAINING_HOURS=$((ESTIMATED_REMAINING / 3600))
             REMAINING_MINS=$(((ESTIMATED_REMAINING % 3600) / 60))
             
-            echo "=> Progress: $PROCESSED/$TOTAL_FILES files processed"
-            echo "=> Total saved so far: $(numfmt --to=iec-i --suffix=B $SAVED_TOTAL)"
-            echo "=> Average speed: ${AVG_SPEED} MB/s"
-            echo "=> Estimated time remaining: ${REMAINING_HOURS}h ${REMAINING_MINS}m"
+            echo -e "=> Progress: ${YELLOW}$PROCESSED${RESET}/${YELLOW}$TOTAL_FILES${RESET} files processed"
+            echo -e "=> Total saved so far: ${GREEN}$(numfmt --to=iec-i --suffix=B $SAVED_TOTAL)${RESET}"
+            echo -e "=> Average speed: ${BLUE}${AVG_SPEED} MB/s${RESET}"
+            echo -e "=> Estimated time remaining: ${MAGENTA}${REMAINING_HOURS}h ${REMAINING_MINS}m${RESET}"
         else
-            echo "=> Progress: $PROCESSED/$TOTAL_FILES files processed"
-            echo "=> Total saved so far: $(numfmt --to=iec-i --suffix=B $SAVED_TOTAL)"
+            echo -e "=> Progress: ${YELLOW}$PROCESSED${RESET}/${YELLOW}$TOTAL_FILES${RESET} files processed"
+            echo -e "=> Total saved so far: ${GREEN}$(numfmt --to=iec-i --suffix=B $SAVED_TOTAL)${RESET}"
         fi
         echo ""
     done
@@ -116,14 +131,14 @@ LAST_DIR=""
         OVERALL_SPEED="N/A"
     fi
 
-    echo "===== Final Results ====="
-    echo "Completed: $(date)"
-    echo "Total processing time: ${TOTAL_HOURS}h ${TOTAL_MINS}m ${TOTAL_SECS}s"
-    echo "Original size: $(numfmt --to=iec-i --suffix=B $ORIGINAL_SIZE)"
-    echo "Final size: $(numfmt --to=iec-i --suffix=B $FINAL_SIZE)"
-    echo "Total saved: $(numfmt --to=iec-i --suffix=B $TOTAL_SAVED) ($TOTAL_SAVED_PERCENT%)"
-    echo "Overall average speed: ${OVERALL_SPEED} MB/s"
-    echo "======================="
-} 2>&1 | tee "$LOG_FILE"
+    echo -e "${BOLD}===== Final Results =====${RESET}"
+    echo -e "Completed: $(date)"
+    echo -e "Total processing time: ${YELLOW}${TOTAL_HOURS}h ${TOTAL_MINS}m ${TOTAL_SECS}s${RESET}"
+    echo -e "Original size: ${MAGENTA}$(numfmt --to=iec-i --suffix=B $ORIGINAL_SIZE)${RESET}"
+    echo -e "Final size: ${MAGENTA}$(numfmt --to=iec-i --suffix=B $FINAL_SIZE)${RESET}"
+    echo -e "Total saved: ${GREEN}$(numfmt --to=iec-i --suffix=B $TOTAL_SAVED)${RESET} (${GREEN}$TOTAL_SAVED_PERCENT%${RESET})"
+    echo -e "Overall average speed: ${BLUE}${OVERALL_SPEED} MB/s${RESET}"
+    echo -e "${BOLD}=======================${RESET}"
+} 2>&1 | tee >(strip_colors > "$LOG_FILE")
 
 exit 0

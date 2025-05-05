@@ -1,4 +1,15 @@
 #!/bin/bash
+
+# Define colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
 # Configurable settings
 MAX_WIDTH=1280    # Maximum width for images (pixels)
 QUALITY=50        # WebP compression quality (0-100)
@@ -31,9 +42,9 @@ ARCHIVE="${PDF_DIR}/${BASE_NAME%.pdf}.tar"
 ORIGINAL_SIZE=$(du -b "$INPUT_PDF" | cut -f1)
 ORIGINAL_SIZE_HUMAN=$(numfmt --to=iec-i --suffix=B $ORIGINAL_SIZE)
 
-echo "Settings: MAX_WIDTH=$MAX_WIDTH, QUALITY=$QUALITY, PARALLEL_JOBS=$PARALLEL_JOBS"
-echo "File: $BASE_NAME ($ORIGINAL_SIZE_HUMAN)"
-echo " - Extracting to $TEMP_DIR"
+echo -e "Settings: MAX_WIDTH=${CYAN}$MAX_WIDTH${RESET}, QUALITY=${CYAN}$QUALITY${RESET}, PARALLEL_JOBS=${CYAN}$PARALLEL_JOBS${RESET}"
+echo -e "File: ${BOLD}$BASE_NAME${RESET} (${MAGENTA}$ORIGINAL_SIZE_HUMAN${RESET})"
+echo -e " - Extracting to \"$TEMP_DIR\""
 
 # Create temporary directory
 mkdir -p "$TEMP_DIR"
@@ -42,8 +53,8 @@ mkdir -p "$TEMP_DIR"
 pdfimages -all "$INPUT_PDF" "$TEMP_DIR/img"
 
 # Check if any images were extracted
-if [ ! "$(ls -A $TEMP_DIR)" ]; then
-    echo " - No images found in PDF. Nothing to compress."
+if [ ! "$(ls -A "$TEMP_DIR")" ]; then
+    echo -e " - ${RED}No images found in PDF. Nothing to compress.${RESET}"
     rmdir "$TEMP_DIR"
     exit 0
 fi
@@ -76,7 +87,7 @@ convert_image() {
 export -f convert_image
 
 # Process images in parallel
-echo " - Processing images in parallel (using $PARALLEL_JOBS jobs)..."
+echo -e " - Processing images in parallel (using ${YELLOW}$PARALLEL_JOBS${RESET} jobs)..."
 find "$TEMP_DIR" -type f | parallel -j "$PARALLEL_JOBS" "convert_image {} $MAX_WIDTH $QUALITY"
 
 # Remove original files, keeping only WebPs
@@ -89,24 +100,24 @@ SAVED_BYTES=$((ORIGINAL_SIZE - NEW_SIZE))
 SAVED_BYTES_HUMAN=$(numfmt --to=iec-i --suffix=B $SAVED_BYTES)
 SAVED_PERCENT=$((SAVED_BYTES * 100 / ORIGINAL_SIZE))
 
-echo " - Compression results:"
-echo "   - Original size: $ORIGINAL_SIZE_HUMAN, new size: $NEW_SIZE_HUMAN, saved: $SAVED_BYTES_HUMAN ($SAVED_PERCENT%)"
+echo -e " - Compression results:"
+echo -e "   - Original size: ${MAGENTA}$ORIGINAL_SIZE_HUMAN${RESET}, new size: ${MAGENTA}$NEW_SIZE_HUMAN${RESET}, saved: ${GREEN}$SAVED_BYTES_HUMAN${RESET} (${GREEN}$SAVED_PERCENT%${RESET})"
 
 # Check if savings are worth it (< 25%)
 if [ $SAVED_PERCENT -lt 25 ]; then
-    echo " - Space savings less than 25%. Keeping original PDF."
+    echo -e " - ${RED}Space savings less than 25%. Keeping original PDF.${RESET}"
     rm -rf "$TEMP_DIR"
     exit 0
 fi
 
 # Create archive
-echo " - Archiving compressed images"
+echo -e " - Archiving compressed images"
 tar -cf "$ARCHIVE" -C "$TEMP_DIR" .
 
 # Clean up
 rm -rf "$TEMP_DIR"
 rm "$INPUT_PDF"
 
-echo " - Replaced $BASE_NAME with ${BASE_NAME%.pdf}.tar"
+echo -e " - Replaced \"$BASE_NAME\" with ${GREEN}\"${BASE_NAME%.pdf}.tar\"${RESET}"
 echo ""
 exit 0

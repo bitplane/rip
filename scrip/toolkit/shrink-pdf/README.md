@@ -8,3 +8,5 @@ The scripts in here will replace an image PDF with a TAR full of webp files, you
 can (and should) adjust the number of threads, image size and quality by editing
 the first couple of lines in `shrink.pdf`, which have been tuned for a specific
 archival project.
+
+* [🎥 cast](https://asciinema.org/a/718033) [💾](shrink_pdf.cast)
