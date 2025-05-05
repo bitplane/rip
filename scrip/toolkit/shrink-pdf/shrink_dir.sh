@@ -11,8 +11,8 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 # Configurable settings
-FILE_PARALLEL_JOBS=12   # Number of PDFs to process simultaneously
-PAGE_PARALLEL_JOBS=8    # Number of pages to process per PDF
+FILE_PARALLEL_JOBS=3   # Number of PDFs to process simultaneously
+PAGE_PARALLEL_JOBS=2    # Number of pages to process per PDF
 MAX_WIDTH=1280          # Maximum width for images (pixels)
 QUALITY=50              # WebP compression quality (0-100)
 MIN_AGE_SECONDS=10      # Minimum age of files to process (to avoid partial uploads)
@@ -235,12 +235,7 @@ main() {
         echo -e "Completed: $(date)"
         echo -e "Total processing time: ${YELLOW}${TOTAL_HOURS}h ${TOTAL_MINS}m ${TOTAL_SECS}s${RESET}"
         echo -e "Original size: ${MAGENTA}$(numfmt --to=iec-i --suffix=B -- $ORIGINAL_SIZE)${RESET}"
-        if [ $TOTAL_SAVED -ge 0 ]; then
-            echo -e "Total saved: ${GREEN}$(numfmt --to=iec-i --suffix=B -- $TOTAL_SAVED)${RESET} (${GREEN}$SAVED_PERCENT%${RESET})"
-        else
-            # Handle negative savings (unlikely but possible)
-            echo -e "Total saved: ${RED}$(numfmt --to=iec-i --suffix=B -- $TOTAL_SAVED)${RESET} (${RED}$SAVED_PERCENT%${RESET})"
-        fi
+        echo -e "Total saved: ${GREEN}$(numfmt --to=iec-i --suffix=B -- $TOTAL_SAVED)${RESET} (${GREEN}$SAVED_PERCENT%${RESET})"
         echo -e "Overall average speed: ${BLUE}${OVERALL_SPEED} MB/s${RESET}"
         echo -e "${BOLD}=======================${RESET}"
     } 2> >(tee -a "$LOG_FILE.stderr" >&2) | tee >(strip_colors > "$LOG_FILE")
