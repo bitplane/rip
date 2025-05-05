@@ -16,11 +16,12 @@ while true; do
 
     # todo: use blkcache to avoid reading twice if we run out of memory
 
-    # Try to get a TAR archive first
+    # Try to get a TAR archive first. This puts the data that matters
+    # into the cache.
     log_info "📦─┐ creating tar for $name"
-    if ! rip_tar "$DEVICE" \
-                 "$work/$name.tar" | \
-                 show_latest_line "        └─ "; then
+    if ! rip_tar "$DEVICE" "$work/$name.tar" \
+               2>"$work/$name.tar.log"      | \
+                  show_latest_line "        └─ "; then
         log_error "❌ TAR failed for $name"
         queue_fail "$work"
         continue
