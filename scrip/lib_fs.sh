@@ -47,8 +47,9 @@ fs_extract_icon() {
             }
         ' "$autorun"
     )
-
-    icon_index=${icon_index:-0}
+    if [ ! -z "$icon_index" ]; then
+        icon_index="--name=${icon_index}"
+    fi
     icon_path=$(echo $icon_path | tr '\\' '/')
     icon_path=${icon_path//$'\r'/}
     icon_path=$(fs_insensitive "$icon_path" "$src") || return 1
@@ -63,7 +64,7 @@ fs_extract_icon() {
       *.exe|*.dll)
         tmpdir=$(mktemp -d)
 
-        wrestool -x --type=14 --name="$icon_index" "$icon_path" \
+        wrestool -x --type=14 $icon_index "$icon_path" \
           | icotool -x -o "$tmpdir" -
 
         # pick the biggest frame (usually last) and move it up
