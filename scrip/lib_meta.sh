@@ -32,7 +32,6 @@ meta_set() {
 
     # update the data
     cat > "$tag_path/$idx"
-    meta_touch "$tag_path"
 
     # fire hook if there is one
     [[ "$(type -t meta_hook_$tag)" == "function" ]] && \
@@ -69,9 +68,6 @@ meta_fix() {
   
     # Cleanup
     rm -rf "$temp"
-
-    # Update mtimes
-    meta_touch "$path"
 }
 
 # Touch path and exactly 2 levels up from metadata
@@ -157,7 +153,7 @@ meta_rm() {
         [[ -z "$(ls -A "$tagdir")" ]] && rmdir "$tagdir"
       fi
     done
-    [[ -d "$base" && -z "$(ls -A "$base")" ]] && rmdir "$base" && meta_touch "$path"
+    [[ -d "$base" && -z "$(ls -A "$base")" ]] && rmdir "$base"
   )
 }
 
