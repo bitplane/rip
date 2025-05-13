@@ -86,7 +86,7 @@ ui_widget_add() {
 
 # Draw this widget
 # Usage: ui_widget_draw path
-ui_widgeit_draw() {
+ui_widget_draw() {
     t < <(meta_get ui.type 0 $1)
     "ui_widget_draw_$t" $1
     for child in ${1}/*; do
@@ -94,9 +94,28 @@ ui_widgeit_draw() {
     done
 }
 
+ui_center_text() {
+  local width="$1"
+  local text="$2"
+  local fill="${3:- }"
+
+  awk -v w="$1" -v t="$2" -v f="${3:-}" '
+    BEGIN {
+      l = length(t)
+      if (l > w) t = substr(t, 1, w)
+      pad = int((w - length(t)) / 2)
+      for (i = 0; i < pad; i++) printf f
+      printf t
+      for (i = 0; i < w - length(t) - pad; i++) printf f
+    }'
+}
+
 ui_widget_draw_screen() {
     read w h < <(meta_get ui.pos 0 "$1")
-    ui_center_text $w "$(meta_get ui.title 0 "$1")" | meta_set "ui.buffer" 0 "$1"
+    title_bar=$(ui_center_text $w "$(meta_get ui.title 0 "$1")")
+    ui_widget_buffer_text "$title_bar"
+    ui_widget_buffer_new $((h - 2))
+    ui_widget_buffer_text "$title_bar"
 }
 
 # Create a string of text for the UI
