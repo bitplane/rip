@@ -18,5 +18,5 @@ meta_hook_ddrescue.log() {
         percent = int((good * 100) / total)
         print percent
     }' || echo 0
-    ) | meta_set ddrescue.integrity "$1"
+    ) | meta_set ddrescue.integrity "$2" "$3"
 }

@@ -36,7 +36,7 @@ meta_set() {
 
     # fire hook if there is one
     [[ "$(type -t meta_hook_$tag)" == "function" ]] && \
-        "meta_hook_$tag" "$path" < "$tag_path/$idx"
+        "meta_hook_$tag" "$tag" "$idx" "$path" < "$tag_path/$idx"
 }
 
 # Fix sequential numbering in a tag directory

@@ -3,6 +3,7 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$BASE_DIR/scrip/libs.sh"
 
 DEVICE="${1:-$(drive_list | head -n1)}"
+DEVICE="${DEVICE:-/dev/sr0}"
 
 while true; do
     drive_eject  "$DEVICE"
@@ -16,8 +17,11 @@ while true; do
 
     # todo: use blkcache to avoid reading twice if we run out of memory
 
-    # Try to get a TAR archive first. This puts the data that matters
-    # into the cache.
+    # Try to get a TAR archive first.
+    # 1. This puts the data that matters into the blkcache.
+    # 2. We can swap the blkcache for a failing cache and re-run, so if I get sick of
+    #    waiting for ddrescue and eject the disk, it'll compute integrity including
+    #    parts of the disk that tar read.
     #log_info "📦─┐ creating tar for $name"
     #if ! rip_tar "$DEVICE" "$work/$name.tar" \
     #           2>"$work/$name.tar.log"      | \
