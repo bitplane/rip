@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+#
+# Metadata handling functions.
+# Metadata is stored in the work item's dir under the .meta dir
+# like so: ./item/.meta/keyname/0
+#
+
+
 # Add metadata value to tag
 # Usage: echo "value" | meta_add "tag" ["path"]
 meta_add() {
@@ -93,6 +100,7 @@ meta_fix() {
 }
 
 # Touch path and exactly 2 levels up from metadata
+# Makes it possible to know when something has changed, including dirs of dirs
 # Usage: meta_touch ["path"]
 meta_touch() {
   local path="${1:-.}"
@@ -136,3 +144,52 @@ meta_get_args() {
     done
   done
 }
+
+# Returns all metadata. Can use wildcards
+# Usage: [key] [index] [path]
+meta_get() {
+  local key="${1:-*}"
+  local id="${2:-*}"
+  local dir="${3:-.}"
+  local base="$dir/.meta"
+
+  ( # run in subshell
+    shopt -s nullglob
+    for tagdir in "$base"/$key; do
+      for file in "$tagdir"/$id; do
+        cat "$file"
+      done
+    done
+  )
+}
+
+# Lists metadata keys
+# Usage: meta_keys [dir]
+meta_keys() {
+  find "${1:-.}/.meta" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null
+}
+
+# Removes tag(s) or all metadata
+# Usage: meta_rm [key] [id] [dir]
+meta_rm() {
+  local key="${1:-*}"
+  local id="${2:-*}"
+  local dir="${3:-.}"
+  local base="$dir/.meta"
+
+  ( # subshell to contain nullglob
+    shopt -s nullglob
+    for tagdir in "$base"/$key; do
+      local removed=false
+      for file in "$tagdir"/$id; do
+        rm -f "$file" && removed=true
+      done
+      if $removed && [[ -d "$tagdir" ]]; then
+        meta_fix "$tagdir"
+        [[ -z "$(ls -A "$tagdir")" ]] && rmdir "$tagdir"
+      fi
+    done
+    [[ -d "$base" && -z "$(ls -A "$base")" ]] && rmdir "$base" && meta_touch "$dir"
+  )
+}
+

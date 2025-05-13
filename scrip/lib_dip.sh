@@ -353,7 +353,7 @@ _dip_delete_entry() {
   local file="${_DIP_ENTRIES[$_DIP_CURSOR]}"
   
   if _dip_prompt "Delete entry $file? [y/N]" "N"; then
-    meta_rm "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$file"
+    meta_rm "$_DIP_TAG" "$file" "$_DIP_DIR/$_DIP_ITEM" 
     _dip_list_files
   fi
 }
@@ -363,7 +363,7 @@ _dip_delete_tag() {
   local tag="${_DIP_ENTRIES[$_DIP_CURSOR]}"
   
   if _dip_prompt "Delete tag $tag and ALL entries? [y/N]" "N"; then
-    meta_rm "$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
+    meta_rm "$tag" "*" "$_DIP_DIR/$_DIP_ITEM"
     _dip_list_tags
   fi
 }
@@ -375,8 +375,9 @@ _dip_delete_meta() {
   # Skip special entries
   [[ "$item" == ".." ]] && return
   
+
   if _dip_prompt "Delete ALL metadata for $item? [y/N]" "N"; then
-    meta_rm "$_DIP_DIR/$item/.meta"
+    meta_rm "*" "*" "$_DIP_DIR/$item"
     _dip_list_entries
   fi
 }

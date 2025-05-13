@@ -18,14 +18,14 @@ while true; do
 
     # Try to get a TAR archive first. This puts the data that matters
     # into the cache.
-    log_info "📦─┐ creating tar for $name"
-    if ! rip_tar "$DEVICE" "$work/$name.tar" \
-               2>"$work/$name.tar.log"      | \
-                  show_latest_line "        └─ "; then
-        log_error "❌ TAR failed for $name"
-        queue_fail "$work"
-        continue
-    fi
+    #log_info "📦─┐ creating tar for $name"
+    #if ! rip_tar "$DEVICE" "$work/$name.tar" \
+    #           2>"$work/$name.tar.log"      | \
+    #              show_latest_line "        └─ "; then
+    #    log_error "❌ TAR failed for $name"
+    #    queue_fail "$work"
+    #    continue
+    #fi
 
     # If the tar succeeded, we might be able to get a ddrescue image
     log_info "⬇️ ripping $name"
@@ -33,14 +33,16 @@ while true; do
                       "$work/$name.iso" \
                       "$work/$name.ddrescue.log"; then
 
-        log_error  "❌ ddrescue failed for $name, using TAR"
+        log_error  "❌ ddrescue failed for $name"
  
-        rm  "$work/$name".iso \
-            "$work/$name".ddrescue.log*
+        #rm  "$work/$name".iso \
+        #    "$work/$name".ddrescue.log*
+        queue_fail "$work"
+        continue
 
-    else
-        # no need for the tar file!
-        rm "$work/$name.tar"
+    #else
+    #    # no need for the tar file!
+    #    rm "$work/$name.tar"
     fi
 
     queue_success "$work"

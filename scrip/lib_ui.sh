@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Zero width space to stop chars from taking up too much space
 ZWS=$'\u200B'
-EMOJIS="💽$ZWS📄$ZWS📦$ZWS🌍$ZWS✅$ZWS"
+EMOJIS="💽$ZWS📄$ZWSℹ️$ZWS📦$ZWS🌍$ZWS✅$ZWS"
 
 # Colours
 RED='\033[0;31m'

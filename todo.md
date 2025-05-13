@@ -6,21 +6,18 @@
 
 ## rip
 
-- [ ] tar passes even if it fails - pipefail?
 - [ ] use the caching fuse mount I wrote
 - [ ] when it's finished, also use qemount to load images
 - [ ] better decision about what files to keep
-- [ ] metadata for stages
 
 ## fs
 
-- [x] fix icon extraction
 - [ ] support settings types
 - [ ] when things fail, actually fucking fail eh?
 
 ## queue
 
-- [ ] rename to `rip_job_queue` and move to subdir
+- [ ] rename to `rip_job_queue`
 - [ ] add a function to re-queue an item
 - [ ] manage worker's pwd
 - [ ] support concurrent workers via pid
@@ -28,18 +25,22 @@
 
 ## meta
 
-- [ ] rename this to `rip_info`
+- [ ] rename this to `rip_job_info`
 - [ ] prevent adding empty data
 - [ ] register generation functions for keys + callbacks for changes
   - [ ] changing date or item name should rename the dir
 - [ ] per-file attributes?
 - [ ] export / import metadata to ia format
+- [ ] add more utility functions
+  - [x] `meta_get`  - get some/all metadata
+  - [x] `meta_keys` - get a list of keys
+  - [x] `meta_rm`   - remove keys
 
 ## log
 
 - [ ] add debug log mode
-- [ ] trace mode using
-- [ ] add colours
+- [ ] trace mode using -x
+- [ ] add colours to stderr
 
 ## ui
 
@@ -57,7 +58,6 @@
 
 ## upload
 
-- [ ] figure out why most of the tags don't work
-- [ ] rename to ia
-- [ ] for pluggable uploaders
+- [ ] rename to `ship_ia`
+- [ ] 
 
