@@ -27,7 +27,10 @@ rip_ddrescue() {
   
     recovered=$(rip_ddrescue_percent "$log_name")
 
-    meta_add "recovery.integrity" <<< "${recovered}%"
+    echo "${recovered}%" | meta_add ddrescue.integrity
+    cat "$log_name"      | meta_add ddrescue.log
+
+    rm "${log_name}"*
 
     if [ "$recovered" -gt 95 ]; then
       log_info  "✅ Recovered ${recovered}% (over 95%)"

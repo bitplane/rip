@@ -15,17 +15,20 @@ meta_add() {
   path="$(fs_path "$path")" || return 1
 
   local tag_path="$path/.meta/$tag"
-  
   mkdir -p "$tag_path"
   meta_fix "$tag_path"
 
   local count
   count="$(find "$tag_path" -type f 2>/dev/null | wc -l)"
-  
-  cat > "$tag_path/$count"
 
-  return 0
+  local value
+  value=$(cat)
+  [[ ${#value} -eq 0 ]] && return 1
+
+  printf "%s\n" "$value" > "$tag_path/$count"
+  meta_touch "$tag_path"
 }
+
 
 # Remove metadata entry, directory, or entire metadata
 # Usage: meta_rm ["path"]
