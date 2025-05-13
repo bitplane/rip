@@ -31,9 +31,7 @@ _dip_in() {
 # Cleanup and exit
 _dip_out() {
   # Restore terminal
-  tput rmcup
-  tput cnorm
-  stty echo -raw
+  reset
 
   # Clean up cache
   rm -rf "$1" 2>/dev/null
@@ -45,7 +43,7 @@ _dip_out() {
 _dip_list_entries() {
   # Reset entries array
   _DIP_ENTRIES=()
-  
+
   # Add parent directory if not at BASE_DIR
   [[ "$_DIP_DIR" != "$BASE_DIR" ]] && _DIP_ENTRIES+=("..")
   
@@ -62,18 +60,18 @@ _dip_list_entries() {
 
 # List metadata tags
 _dip_list_tags() {
-  # Reset entries array
-  _DIP_ENTRIES=()
+    # Reset entries array
+    _DIP_ENTRIES=()
   
-  # Add tags
-  while IFS= read -r tag; do
-    [[ -z "$tag" ]] && continue
-    _DIP_ENTRIES+=("$tag")
-  done < <(find "$_DIP_DIR/$_DIP_ITEM/.meta" -maxdepth 1 -mindepth 1 -type d -printf "%f\n" 2>/dev/null | sort)
+    # Add tags
+    while IFS= read -r tag; do
+        [[ -z "$tag" ]] && continue
+        _DIP_ENTRIES+=("$tag")
+    done < <(meta_tags "$_DIP_DIR"/"$_DIP_ITEM" | sort)
   
-  # Adjust cursor position if needed
-  [[ $_DIP_CURSOR -ge ${#_DIP_ENTRIES[@]} ]] && _DIP_CURSOR=$((${#_DIP_ENTRIES[@]} - 1))
-  [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
+    # Adjust cursor position if needed
+    [[ $_DIP_CURSOR -ge ${#_DIP_ENTRIES[@]} ]] && _DIP_CURSOR=$((${#_DIP_ENTRIES[@]} - 1))
+    [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
 }
 
 # List tag files
@@ -140,8 +138,7 @@ _dip_status_bar() {
 
 # User prompt with y/n
 _dip_prompt() {
-  local message="$1"
-  local default="${2:-N}"
+  local message="$1" default="${2:-N}"
   
   tput cup $(($(tput lines) - 1)) 0
   tput el

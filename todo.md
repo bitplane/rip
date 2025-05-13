@@ -10,6 +10,10 @@
 - [ ] when it's finished, also use qemount to load images
 - [ ] better decision about what files to keep
 
+## strip
+
+- [ ] remove this and use hooks instead
+
 ## fs
 
 - [ ] support settings types
@@ -26,8 +30,13 @@
 ## meta
 
 - [ ] rename this to `rip_job_info`
-- [ ] register generation functions for keys + callbacks for changes
+- [x] add hooks for changes
   - [ ] changing date or item name should rename the dir
+    - actually let's do this by changing the item's name, which will attempt
+      to change the dir on a hook
+  - [x] ddrescue log should update integrity
+  - [ ] move tree to metadata
+  - [ ] extract iso information
 - [ ] export / import metadata to ia format
 
 ## log
@@ -52,6 +61,5 @@
 
 ## upload
 
-- [ ] rename to `ship_ia`
-- [ ] 
+- [ ] rename to `ship_ia` 
 
