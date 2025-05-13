@@ -25,12 +25,12 @@ rip_ddrescue() {
       log_error "⏰ ddrescue either timed out or exited with an error" 
     fi
   
-    recovered=$(rip_ddrescue_percent "$log_name")
-
-    echo "${recovered}%" | meta_add ddrescue.integrity
-    cat "$log_name"      | meta_add ddrescue.log
-
+    cat "$log_name"    | meta_add ddrescue.log
     rm "${log_name}"*
+
+    local recovered=0
+    # hook will have populated this
+    recovered=$(meta_get ddrescue.integrity)
 
     if [ "$recovered" -gt 95 ]; then
       log_info  "✅ Recovered ${recovered}% (over 95%)"
@@ -40,26 +40,6 @@ rip_ddrescue() {
     fi
   ) || return 1
 
-}
-
-rip_ddrescue_percent() {
-  local log_file="$1"
-
-  awk '
-  /^0x/ {
-      size = strtonum($2)
-      total += size
-      if ($3 == "+") good += size
-  }
-  END {
-      if (total == 0) {
-          print 0
-          exit
-      }
-      percent = int((good * 100) / total)
-      print percent
-  }
-  ' "$log_file" 2>/dev/null || echo 0
 }
 
 drive_list() {

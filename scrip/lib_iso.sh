@@ -9,3 +9,8 @@ iso_get_name() {
     echo "UNKNOWN_$(date +%s)"
   fi
 }
+
+iso_get_info() {
+    local file="$1"
+    isoinfo -d -i "$file" 2>/dev/null | grep -vE ': $'
+}

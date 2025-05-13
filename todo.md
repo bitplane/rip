@@ -26,15 +26,9 @@
 ## meta
 
 - [ ] rename this to `rip_job_info`
-- [ ] prevent adding empty data
 - [ ] register generation functions for keys + callbacks for changes
   - [ ] changing date or item name should rename the dir
-- [ ] per-file attributes?
 - [ ] export / import metadata to ia format
-- [ ] add more utility functions
-  - [x] `meta_get`  - get some/all metadata
-  - [x] `meta_keys` - get a list of keys
-  - [x] `meta_rm`   - remove keys
 
 ## log
 
