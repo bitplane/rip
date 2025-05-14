@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 
-# Clears a widget's buffer
 ui_widget_buffer_new() {
-    awk -v w="$1" -v h="$1" 'BEGIN{for(i=0;i<h;i++){for(j=1;j<w;j++)printf("\t"); print ""}}'
+    awk -v w="$1" -v h="$2" -v s="${3:-\033[0m}" 'BEGIN{
+        for(i=1;i<=h;i++){
+            for(j=1;j<=w;j++)printf "%s %s", s, j<w?"\t":""
+            if(i<h)print""
+        }
+    }'
 }
 
 # Inserts one buffer into another
 # Usage: bg_file fg_file fg_x fg_y fg_offset_x fg_offset_y fg_width fg_height
-ui_widget_buffer_insert() {
+ui_widget_buffer_blit() {
     local bg="$1" fg="$2" xpos="$3" ypos="$4" xoff="$5" yoff="$6" width="$7" height="$8"
     awk -v xpos="$xpos" -v ypos="$ypos" -v xoff="$xoff" -v yoff="$yoff" -v width="$width" -v height="$height" '
       BEGIN { FS = OFS = "\t" }

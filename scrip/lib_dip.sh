@@ -530,6 +530,12 @@ dip_main() {
   done
 }
 
+dip_new() {
+    _dip_in
+    ui_widget_add screen dip 0 0 $(tput cols) $(tput lines) /tmp/ui-test
+    ui_widget_draw /tmp/ui-test | rt -d '\t'
+}
+
 # Run if executed directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   dip_main

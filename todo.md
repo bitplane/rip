@@ -47,9 +47,9 @@
 
 ## ui
 
-- [ ] move more code in from dip
 - [ ] status bar for header and footer
 - [ ] list file view
+- [ ] make bash/awk ui library
 
 ## dip
 
