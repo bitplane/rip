@@ -30,8 +30,11 @@ _dip_in() {
 
 # Cleanup and exit
 _dip_out() {
-  # Restore terminal
-  reset
+  
+  tput rmcup
+  tput cnorm
+  stty sane
+  #echo -e '\e[?1049l'
 
   # Clean up cache
   rm -rf "$1" 2>/dev/null

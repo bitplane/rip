@@ -2,10 +2,8 @@
 
 
 #
-# ui widgets
+# ui widget kit
 #
-# * let's rename this to `kit`
-# 
 # render pipeline:
 # 1. start at some viewport, which has a buffer
 #
@@ -20,45 +18,53 @@
 #        info
 #            *animated
 #
-#  * a kit widget has w h        <- width and height
-#  * its parent has: kid x y w h <- clip region
-#  for k in kids:
-#    kids.ctime kid.ctime clip
-#  
+# 
+# ui.clip x y w h
+# ui.pos  x y w h
+
+
+
+
 # Adds a widget to the ui graph
 # Usage: path=$(ui_widget_add parent type x y w h)
-ui_widget_add() {
+ui_kit_add() {
     local parent="$1" t="$2" x="$3" y="$4" w="$5" h="$6" path
     path="$(find "$parent" -type d -maxdepth 1 -mindepth 1 | wc -l)"
     mkdir -p "$path"
-    echo "$t"                              | meta_set "ui.type"   0 "$path"
-    echo "$parent"                         | meta_set "ui.parent" 0 "$path"
-    printf "$x\n$y\n"                      | meta_set "ui.pos"    0 "$path"
-    printf "$w\n$h\n"                      | meta_set "ui.size"   0 "$path"
-    printf "0\n0\n$w\n$h\n"                | meta_set "ui.clip"   0 "$path"
-    ui_widget_buffer_new "$w" "$h" "$path" | meta_set "ui.buffer" 0 "$path"
+    echo "$t"                 | meta_set "ui.type"   0 "$path"
+    echo "$parent"            | meta_set "ui.parent" 0 "$path"
+    printf "$x\n$y\n"         | meta_set "ui.pos"    0 "$path"
+    printf "$w\n$h\n"         | meta_set "ui.size"   0 "$path"
+    printf "0\n0\n$w\n$h\n"   | meta_set "ui.clip"   0 "$path"
+    ui_kit_blit_new "$w" "$h" | meta_set "ui.buffer" 0 "$path"
     echo "$path"
 }
 
-# Draw this widget (callback)
-ui_widget_on_draw() {
+# Starting at the given widget, find all clip regions and positions
+# 
+#ui_kit_clip_list() {
+#
+#}
+
+ui_kit_on_draw() {
     local t="$(meta_get "ui.type" 0 "$1")"
     echo $t $1
-    "ui_widget_on_draw_$t" "$1"
+    "ui_kit_on_draw_$t" "$1"
     #for child in $(find "$1" -type d -maxdepth 1); do
     #    ui_widget_draw $child
     #done
 }
 
-# Adds a screen widget
-# Usage: ui_widget_add_screen
-ui_widget_screen_add() {
+# Add the screen
+ui_kit_add_screen() {
     local path
     path=$(ui_widget_add "$1" screen 0 0 "$(tput cols)" "$(tput lines)")
     echo $2 | meta_set "$1" "ui.title" 0
 }
 
-ui_widget_on_draw_screen() {
+
+
+ui_kit_on_draw_screen() {
     read w h < <(meta_get ui.pos 0 "$1")
     title_bar=$(ui_center_text "$w" "$(meta_get ui.title 0 "$1")")
     ui_widget_buffer_text "$title_bar"

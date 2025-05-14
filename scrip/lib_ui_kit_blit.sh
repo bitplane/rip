@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 
-ui_widget_buffer_new() {
+#
+# Contains functions to do with copying chars.
+# Most of this is done in awk because bash is too slow.
+#
+
+# Creates a new character buffer
+#
+ui_kit_blit_new() {
     awk -v w="$1" -v h="$2" -v s="${3:-\033[0m}" 'BEGIN{
         for(i=1;i<=h;i++){
             for(j=1;j<=w;j++)printf "%s %s", s, j<w?"\t":""
@@ -11,7 +18,7 @@ ui_widget_buffer_new() {
 
 # Inserts one buffer into another
 # Usage: bg_file fg_file fg_x fg_y fg_offset_x fg_offset_y fg_width fg_height
-ui_widget_buffer_blit() {
+ui_kit_blit() {
     local bg="$1" fg="$2" xpos="$3" ypos="$4" xoff="$5" yoff="$6" width="$7" height="$8"
     awk -v xpos="$xpos" -v ypos="$ypos" -v xoff="$xoff" -v yoff="$yoff" -v width="$width" -v height="$height" '
       BEGIN { FS = OFS = "\t" }
@@ -33,7 +40,7 @@ ui_widget_buffer_blit() {
 
 # Create a string of text for the UI
 # Usage: ui_text "text" [escapes]
-ui_widget_buffer_text() {
+ui_kit_blit_text() {
   awk -v text="$1" -v s="$2" -v r=$'\033[0m' '
     BEGIN {
       n = split(text, chars, "")

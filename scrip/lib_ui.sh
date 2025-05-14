@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Zero width space to stop chars from taking up too much space
 ZWS=$'\u200B'
-EMOJIS="💽$ZWS📄$ZWSℹ️$ZWS📦$ZWS🌍$ZWS✅$ZWS"
+EMOJIS="💽$ZWSℹ️ 📦$ZWS🌍$ZWS✅$ZWS"
 
 # Colours
 RED='\033[0;31m'
@@ -36,7 +36,7 @@ ui_emoji() {
 
   # Check if the directory is a numbered stage or under a stage
   if [[ $base =~ ^[1-5]\. ]]; then
-      local pos=$(( ${base:0:1} * 2))
+      local pos=$(( ( ${base:0:1} - 1) * 2))
       echo "${EMOJIS:$pos:2}"
   else
     echo "  "

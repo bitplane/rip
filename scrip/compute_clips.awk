@@ -1,115 +1,52 @@
 #!/usr/bin/awk -f
-# compute_clips.awk - Computes visible regions for nested TUI widgets
+BEGIN { FS = "[ \t]+" }
 
-BEGIN {
-    FS = "[ \t]+"  # Handle any whitespace
-    HUGE = 65535   # Initial clip size
-}
-
-function min(a, b) { return (a < b) ? a : b }
-function max(a, b) { return (a > b) ? a : b }
-
-# Extract the widget path from the full path containing .meta/buffer/file
-function get_widget_path(full_path) {
-    # Find the position of .meta
-    meta_pos = index(full_path, ".meta")
-    if (meta_pos == 0) return full_path  # No .meta found
-    
-    # Return everything before .meta
-    return substr(full_path, 1, meta_pos - 2)  # -2 to remove the / before .meta
-}
-
-# Get parent path from a widget path
-function get_parent(path) {
-    if (path == "root") return ""
-    
-    # Find the last '/' in the path
-    last_slash = 0
-    for (i = 1; i <= length(path); i++) {
-        if (substr(path, i, 1) == "/") {
-            last_slash = i
-        }
-    }
-    
-    # If no slash found, we're at root
-    if (last_slash == 0) return "root"
-    
-    # Return everything before the last slash
-    return substr(path, 1, last_slash - 1)
-}
-
-# Extract the complete buffer path (.meta/buffer/file and everything after)
-function get_buffer_path(full_path) {
-    # Find the position of .meta
-    meta_pos = index(full_path, ".meta")
-    if (meta_pos == 0) return ""  # No .meta found
-    
-    # Return everything from .meta onwards
-    return substr(full_path, meta_pos)
-}
+function get_widget_path(p) { meta_pos = index(p, "/.meta/"); return meta_pos ? substr(p, 1, meta_pos - 1) : p }
+function get_parent(p) { last_slash = match(p, ".*\\/"); return last_slash ? substr(p, 1, RLENGTH - 1) : p }
+function max(a, b) { return a > b ? a : b }
+function min(a, b) { return a < b ? a : b }
 
 {
-    full_path = $1
+  path = get_widget_path($1)
+  parent = get_parent(path)
+  
+  # Calculate absolute position
+  abs_x[path] = abs_x[parent] + $2  
+  abs_y[path] = abs_y[parent] + $3  
+  
+  # Widget boundaries in absolute coordinates
+  widget_x1 = abs_x[path]
+  widget_y1 = abs_y[path]
+  widget_x2 = widget_x1 + $4
+  widget_y2 = widget_y1 + $5
+  
+  # Clip with parent's clip region
+  clip_x1[path] = max(widget_x1, clip_x1[parent])
+  clip_y1[path] = max(widget_y1, clip_y1[parent])
+  clip_x2[path] = min(widget_x2, clip_x2[parent] ? clip_x2[parent] : 9999)
+  clip_y2[path] = min(widget_y2, clip_y2[parent] ? clip_y2[parent] : 9999)
+  
+  # Skip if no intersection
+  if (clip_x2[path] <= clip_x1[path] || clip_y2[path] <= clip_y1[path]) next
+  
+  # Output for buffer paths
+  if (index($1, "/.meta/") > 0) {
+    # Screen coordinates (where to place on screen)
+    screen_x = clip_x1[path]
+    screen_y = clip_y1[path]
     
-    # Widget coordinates and dimensions
-    cx = $2; cy = $3; cw = $4; ch = $5
-    ox = $6; oy = $7; ow = $8; oh = $9
+    # Buffer-local coordinates (where to start in buffer)
+    buffer_x = clip_x1[path] - abs_x[path]
+    buffer_y = clip_y1[path] - abs_y[path]
     
-    # Extract the widget path and buffer file
-    widget_path = get_widget_path(full_path)
-    buffer_path = get_buffer_path(full_path)
+    # Dimensions of visible region
+    width = clip_x2[path] - clip_x1[path]
+    height = clip_y2[path] - clip_y1[path]
     
-    if (widget_path == "root") {
-        # Root is the first widget - use its coordinates directly
-        x = cx
-        y = cy
-        w = cw
-        h = ch
-    } else {
-        # Get the parent's path
-        parent = get_parent(widget_path)
-        
-        # Check if parent exists and has a valid clip
-        if (!(parent in clip_x)) {
-            # Parent doesn't exist or was clipped out
-            next
-        }
-        
-        # Get parent's clip region
-        px = clip_x[parent]
-        py = clip_y[parent]
-        pw = clip_w[parent]
-        ph = clip_h[parent]
-        
-        # Calculate intersection with parent's clip
-        x1 = max(px, cx)
-        y1 = max(py, cy)
-        x2 = min(px + pw, cx + cw)
-        y2 = min(py + ph, cy + ch)
-        
-        # Calculate dimensions of intersected region
-        w = x2 - x1
-        h = y2 - y1
-        
-        # Skip if no intersection
-        if (w <= 0 || h <= 0) {
-            next
-        }
-        
-        # Set the visible coordinates
-        x = x1
-        y = y1
-    }
-    
-    # Store this widget's clip region
-    clip_x[widget_path] = x
-    clip_y[widget_path] = y
-    clip_w[widget_path] = w
-    clip_h[widget_path] = h
-    
-    # Output the buffer path and visible region
-    # Only output if we have a buffer path
-    if (buffer_path != "") {
-        printf "%s %d %d %d %d\n", buffer_path, x, y, w, h
-    }
+    # Output all 7 columns
+    printf "%s %d %d %d %d %d %d\n", $1, 
+           screen_x, screen_y, 
+           buffer_x, buffer_y, 
+           width, height
+  }
 }
