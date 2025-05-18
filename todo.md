@@ -3,6 +3,9 @@
 ## general
 
 - [ ] reconsider layout - flexible pipelines baked into job dirs.
+- [ ] root level config file
+  - [ ] zip method (zstd, xz, gz)
+- [ ] `./configure`
 
 ## rip
 
@@ -23,18 +26,17 @@
 
 - [ ] rename to `rip_job_queue`
 - [ ] add a function to re-queue an item
-- [ ] manage worker's pwd
 - [ ] support concurrent workers via pid
+  - [ ] manage worker's pwd
 - [ ] consider more flexible pipelines
+  - [ ] have next stage information in queue dir metadata?
+  - [ ] use symlinks 
 
 ## meta
 
-- [ ] rename this to `rip_job_info`
 - [x] add hooks for changes
-  - [ ] changing date or item name should rename the dir
-    - actually let's do this by changing the item's name, which will attempt
-      to change the dir on a hook
-  - [x] ddrescue log should update integrity
+  - [x] changing date or item name should rename the dir
+    - [ ] this was a bad idea! fix it with queue pid fix
   - [ ] move tree to metadata
   - [ ] extract iso information
 - [ ] export / import metadata to ia format
@@ -50,16 +52,39 @@
 - [ ] status bar for header and footer
 - [ ] list file view
 - [ ] make bash/awk ui library
+  - [ ] test toolkit
+  - [ ] low level
+    - [x] buffers
+    - [x] compositor / cropping
+    - [ ] scene graph
+    - [ ] render loop
+  - [ ] widgets
+    - [ ] list
+    - [ ] table
+    - [ ] split panel
+    - [ ] header/footer bar
+    - [ ] image viewer
+  - [ ] input
+    - [ ] generic text
+    - [ ] question y/n
+    - [ ] mouse hits
 
 ## dip
 
-- [ ] rm bot code spam
-- [ ] drop env vars, use cd for pwd
-- [ ] use fs to run a shell in an archive
-- [ ] allow renaming items
-- [ ] file list as a source of truth
+- [ ] `rm` bot code spam
+- [ ] drop most globals, use `cd` for `pwd`
+- [ ] features
+  - [ ] use fs to run a shell in an archive
+    - [ ] use`qemount`
+  - [ ] allow renaming items
 
 ## upload
 
-- [ ] rename to `ship_ia` 
+- [ ] rename to `ship_ia`
+- [ ] use xml or json rather than extracting .meta
+- [ ] support other back-ends
+  - [ ] google drive
+  - [ ] network path
+  - [ ] `ipfs`
+  - [ ] `bittorrent`
 
