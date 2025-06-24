@@ -4,7 +4,7 @@ shell_trap() {
     local name="_SHELL_EXIT_$$"
     if ! declare -p "$name" &>/dev/null; then
         declare -g -a "$name"
-        trap __shell_exit EXIT
+        trap __shell_exit EXIT INT TERM HUP
     fi
 
     local -n stack="$name"

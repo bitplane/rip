@@ -1,8 +1,10 @@
+# Counts the number of work items in a work dir
 queue_count() {
   local dir="$1"
   find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l
 }
 
+# 
 queue_wait() {
   local dir="$1"
   local work
@@ -79,3 +81,5 @@ queue_fail() {
   log_error "💩 moving $work to $dest"
   mv "$work" "$dest"
 }
+
+
