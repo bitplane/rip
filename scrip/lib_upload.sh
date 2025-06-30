@@ -12,7 +12,7 @@ upload_directory() {
     local files=()
     while IFS= read -r -d '' file; do
       files+=("$file")
-    done < <(find . -type f ! -path "./.*" -print0)
+    done < <(find . -type f ! -path "./.*" -print0 | sort -z)
 
     if [[ ${#files[@]} -eq 0 ]]; then
       log_error "⚠️ No files to upload in $work"
