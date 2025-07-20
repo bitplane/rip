@@ -45,8 +45,25 @@ queue_success() {
   local work="$1"
   local next_stage
   local dest
+  local basename_work
   next_stage=$(queue_get_next_stage "$(dirname "$work")") || return 1
-  dest="$next_stage/$(basename "$work")"
+  basename_work="$(basename "$work")"
+  
+  # Check if moving from snip to zip and apply date renaming
+  local current_stage=$(basename "$(dirname "$work")" | cut -d'.' -f1)
+  local next_stage_name=$(basename "$next_stage" | cut -d'.' -f2)
+  
+  if [[ "$current_stage" == "2" && "$next_stage_name" == "zip" ]]; then
+    # Check if there's date metadata and rename accordingly
+    if [[ -f "$work/.meta/date/0" ]]; then
+      local date=$(cat "$work/.meta/date/0" | tr '-' '_')
+      if [[ "${basename_work:0:${#date}}" != "$date" ]]; then
+        basename_work="$date"_"$basename_work"
+      fi
+    fi
+  fi
+  
+  dest="$next_stage/$basename_work"
   
   if [[ -d "$dest" ]]; then
     dest="${dest}"_$(date '+%Y%m%d_%H%M%S')
