@@ -25,8 +25,11 @@ rip_ddrescue() {
       log_error "⏰ ddrescue either timed out or exited with an error" 
     fi
   
-    cat "$log_name"    | meta_add ddrescue.log
-    rm "${log_name}"*
+    if cat "$log_name" | meta_add ddrescue.log; then
+        rm "${log_name}"*
+    else
+        log_error "Failed to store ddrescue log, keeping file: $log_name"
+    fi
 
     local recovered=0
     # hook will have populated this

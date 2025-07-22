@@ -126,7 +126,10 @@ fs_run_in() {
 }
 
 _fs_run_in_cleanup() {
-    popd > /dev/null
+    # Only popd if we're in the mounted directory
+    if [[ "$(pwd)" == "$1" ]]; then
+        popd > /dev/null || log_warn "Failed to popd from mount directory"
+    fi
     fusermount -u  "$1" || true
     rmdir          "$1" || true
 }
