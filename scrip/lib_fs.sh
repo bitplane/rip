@@ -64,14 +64,29 @@ fs_extract_icon() {
       *.exe|*.dll)
         tmpdir=$(mktemp -d)
 
-        wrestool -x --type=14 $icon_index "$icon_path" > "$tmpdir/temp.ico" && \
-          icotool -x -o "$tmpdir" "$tmpdir/temp.ico"
+        if ! wrestool -x --type=14 "$icon_index" "$icon_path" > "$tmpdir/temp.ico" 2>/dev/null; then
+          log_error "wrestool failed to extract icon from $icon_path"
+          rm -r "$tmpdir"
+          return 1
+        fi
+        
+        if ! icotool -x -o "$tmpdir" "$tmpdir/temp.ico" 2>/dev/null; then
+          log_error "icotool failed to convert icon from $icon_path"
+          rm -r "$tmpdir"
+          return 1
+        fi
 
         # pick the biggest frame (usually last) and move it up
-        largest=$(ls -v "$tmpdir"/*.png | tail -n1)
-        mv "$largest" "$dest/icon.png"
+        if ls "$tmpdir"/*.png >/dev/null 2>&1; then
+          largest=$(ls -v "$tmpdir"/*.png | tail -n1)
+          mv "$largest" "$dest/icon.png"
+        else
+          log_error "No PNG files extracted from $icon_path"
+          rm -r "$tmpdir"
+          return 1
+        fi
 
-        rm -r "$tmpdir"
+        rm -r "$tmpdir" || log_warn "Failed to clean up temp directory: $tmpdir"
         ;;
       *)
         return 1
