@@ -64,8 +64,8 @@ fs_extract_icon() {
       *.exe|*.dll)
         tmpdir=$(mktemp -d)
 
-        wrestool -x --type=14 $icon_index "$icon_path" \
-          | icotool -x -o "$tmpdir" -
+        wrestool -x --type=14 $icon_index "$icon_path" > "$tmpdir/temp.ico" && \
+          icotool -x -o "$tmpdir" "$tmpdir/temp.ico"
 
         # pick the biggest frame (usually last) and move it up
         largest=$(ls -v "$tmpdir"/*.png | tail -n1)
