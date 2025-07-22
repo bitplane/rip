@@ -11,10 +11,10 @@ generate_metadata() {
   local name
   date=$(fs_last_update "$MOUNT_POINT")
   title="$date $(echo $(basename "$work") | tr '_' ' ')"
-  echo "$title"                           |  meta_add title       "$work"
-  echo software                           |  meta_add mediatype   "$work"
-  echo "$date"                            |  meta_add date        "$work"
-  head -n 500 "$work/tree.txt"            |  meta_add description "$work"
+  echo "$title"                           |  meta_set title       0 "$work"
+  echo software                           |  meta_set mediatype   0 "$work"
+  echo "$date"                            |  meta_set date        0 "$work"
+  head -n 500 "$work/tree.txt"            |  meta_set description 0 "$work"
   
   fs_extract_icon "." "$work"             || true
 }
