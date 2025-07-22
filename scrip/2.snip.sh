@@ -9,11 +9,7 @@ generate_metadata() {
   fs_tree "." >> "$work"/tree.txt
 
   local name
-  if [[ -z "$MOUNT_POINT" ]]; then
-    log_error "MOUNT_POINT is not set"
-    return 1
-  fi
-  date=$(fs_last_update "$MOUNT_POINT")
+  date=$(fs_last_update ".")
   title="$date $(echo $(basename "$work") | tr '_' ' ')"
   echo "$title"                           |  meta_set title       0 "$work"
   echo software                           |  meta_set mediatype   0 "$work"
