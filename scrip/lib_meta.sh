@@ -49,6 +49,7 @@ meta_fix() {
 
     # Create temp directory for renaming
     local temp=$(mktemp -d)
+    shell_trap "rm -rf '$temp'"
   
     # Copy files to temp with sequential names
     local idx=0
@@ -143,7 +144,7 @@ meta_rm() {
 
   ( # subshell to contain nullglob
     shopt -s nullglob
-    for tagdir in "$base"/$tag; do
+    for tagdir in "$basedir"/$tag; do
       local removed=false
       for file in "$tagdir"/$idx; do
         rm -f "$file" && removed=true
@@ -153,7 +154,7 @@ meta_rm() {
         [[ -z "$(ls -A "$tagdir")" ]] && rmdir "$tagdir"
       fi
     done
-    [[ -d "$base" && -z "$(ls -A "$base")" ]] && rmdir "$base"
+    [[ -d "$basedir" && -z "$(ls -A "$basedir")" ]] && rmdir "$basedir"
   )
 }
 

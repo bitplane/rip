@@ -26,7 +26,7 @@ rip_ddrescue() {
     fi
   
     if cat "$log_name" | meta_add ddrescue.log; then
-        rm "${log_name}"*
+        rm -f "${log_name}"* || true
     else
         log_error "Failed to store ddrescue log, keeping file: $log_name"
     fi

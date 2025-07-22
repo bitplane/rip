@@ -96,7 +96,10 @@ queue_fail() {
   fi
 
   log_error "💩 moving $work to $dest"
-  mv "$work" "$dest"
+  mv "$work" "$dest" || {
+    log_error "Failed to move $work to failed queue"
+    return 1
+  }
 }
 
 

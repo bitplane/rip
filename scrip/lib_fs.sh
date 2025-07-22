@@ -50,7 +50,7 @@ fs_extract_icon() {
     if [ ! -z "$icon_index" ]; then
         icon_index="--name=${icon_index}"
     fi
-    icon_path=$(echo $icon_path | tr '\\' '/')
+    icon_path=$(echo "$icon_path" | tr '\\' '/')
     icon_path=${icon_path//$'\r'/}
     icon_path=$(fs_insensitive "$icon_path" "$src") || return 1
 
@@ -66,13 +66,13 @@ fs_extract_icon() {
 
         if ! wrestool -x --type=14 "$icon_index" "$icon_path" > "$tmpdir/temp.ico" 2>/dev/null; then
           log_error "wrestool failed to extract icon from $icon_path"
-          rm -r "$tmpdir"
+          rm -rf "$tmpdir" || log_warn "Failed to clean up temp directory: $tmpdir"
           return 1
         fi
         
         if ! icotool -x -o "$tmpdir" "$tmpdir/temp.ico" 2>/dev/null; then
           log_error "icotool failed to convert icon from $icon_path"
-          rm -r "$tmpdir"
+          rm -rf "$tmpdir" || log_warn "Failed to clean up temp directory: $tmpdir"
           return 1
         fi
 
@@ -82,7 +82,7 @@ fs_extract_icon() {
           mv "$largest" "$dest/icon.png"
         else
           log_error "No PNG files extracted from $icon_path"
-          rm -r "$tmpdir"
+          rm -rf "$tmpdir" || log_warn "Failed to clean up temp directory: $tmpdir"
           return 1
         fi
 
