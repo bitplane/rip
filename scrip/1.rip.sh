@@ -9,8 +9,9 @@ while true; do
     drive_eject  "$DEVICE"
     drive_wait   "$DEVICE" || continue
 
-    name=$(iso_get_name "$DEVICE")
+    name=$(drive_get_name "$DEVICE")
     work="$BASE_DIR/1.rip/$name"
+    ext=$(drive_extension "$DEVICE")
 
     mkdir -p "$work"
     meta_add "scanner" "$work" <<< "rip (https://github.com/bitplane/rip)"
@@ -34,7 +35,7 @@ while true; do
     # If the tar succeeded, we might be able to get a ddrescue image
     log_info "⬇️ ripping $name"
     if ! rip_ddrescue "$DEVICE" \
-                      "$work/$name.iso" \
+                      "$work/$name.$ext" \
                       "$work/$name.ddrescue.log"; then
 
         log_error  "❌ ddrescue failed for $name"

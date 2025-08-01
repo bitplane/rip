@@ -116,8 +116,8 @@ fs_run_in() {
     shell_trap "_fs_run_in_cleanup $tmp_mount"
 
     case "$path" in
-      *.iso | /dev/* ) fuseiso      "$path" "$tmp_mount" ;;
-      *)               archivemount "$path" "$tmp_mount" ;;
+      *.iso | *.img | /dev/* ) fuseiso      "$path" "$tmp_mount" ;;
+      *)                       archivemount "$path" "$tmp_mount" ;;
     esac
 
     pushd "$tmp_mount" > /dev/null

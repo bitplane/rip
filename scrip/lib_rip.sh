@@ -21,7 +21,8 @@ rip_ddrescue() {
     local log_name=$(basename "$output_log")
     
     log_info "🔄 reading disk"
-    if ! timeout 1h ddrescue -n -a 2048 -b 2048 "$device" "$iso_name" "$log_name"; then
+    local sector_size=$(drive_sector_size "$device")
+    if ! timeout 1h ddrescue -n -a "$sector_size" -b "$sector_size" "$device" "$iso_name" "$log_name"; then
       log_error "⏰ ddrescue either timed out or exited with an error" 
     fi
   
