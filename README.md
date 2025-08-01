@@ -3,7 +3,7 @@ features: ["asciinema"]
 ---
 # `rip`
 
-bash scripts for batch ripping computer CDs/DVDs and uploading to archive.org
+bash scripts for batch ripping computer CDs/DVDs/floppy disks and uploading to archive.org
 
 ## ▶️ `SETUP.EXE`
 
@@ -12,7 +12,7 @@ It'll grumble at startup if you don't have the following:
 ```bash
 sudo apt install tmux gddrescue tree xz-utils imagemagick \
                  eject genisoimage archivemount icoutils \
-                 imagemagick
+                 imagemagick mtools fuseiso
 pip install "internetarchive~=5.3"
 ```
 
@@ -33,7 +33,7 @@ Either run `./scrip/n.stage.sh` as background tasks, or run it in tmux:
 This will create a session with a general monitor pane, plus outputs from each
 stage of the pipeline:
 
-1. `rip` - taking a CD or DVD from the drive and reading it with `ddrescue`. The
+1. `rip` - taking a CD, DVD, or floppy disk from the drive and reading it with `ddrescue`. The
    log files are included. `rip-all` launches one process per drive, which is
    default.
 2. `snip` - collects metadata, like the file date of the youngest file, the file
@@ -53,7 +53,7 @@ edit the metadata with `dip`.
 
 Since everything is just a dir containing files, you can move them about and
 mess with them to re-queue them. So you don't need to just use it with
-CDs/DVDs; you can add whatever work you like to the `ship` dir.
+CDs/DVDs/floppies; you can add whatever work you like to the `ship` dir.
 
 You can also `source ./scrip/libs.sh` and use the functions manually. By
 convention these start with `name_` from the `lib_name.sh`.
