@@ -24,18 +24,22 @@ meta_set() {
     [[ "$idx" =~ ^[0-9]+$ ]] || return 1
 
     local tag_path="$path/.meta/$tag" current=0
-    mkdir -p "$tag_path"
+    mkdir -p "$tag_path" || return "$?"
     # ensure consistency
-    meta_fix "$tag_path"
+    meta_fix "$tag_path" || return "$?"
+
     current=$(meta_count "$tag" "$path")
-    seq "$current" "$idx" | xargs -I{} touch "$tag_path/{}"
+    for i in $(seq "$current" "$idx"); do
+        touch "$tag_path/$i" || return "$?"
+    done
 
     # update the data
-    cat > "$tag_path/$idx"
+    cat > "$tag_path/$idx" || return "$?"
 
     # fire hook if there is one
-    [[ "$(type -t meta_hook_$tag)" == "function" ]] && \
+    if type "meta_hook_$tag" >/dev/null 2>&1; then
         "meta_hook_$tag" "$tag" "$idx" "$path" < "$tag_path/$idx"
+    fi
 }
 
 # Fix sequential numbering in a tag directory
