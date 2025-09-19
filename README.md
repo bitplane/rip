@@ -12,7 +12,7 @@ It'll grumble at startup if you don't have the following:
 ```bash
 sudo apt install tmux gddrescue tree xz-utils imagemagick \
                  eject genisoimage archivemount icoutils \
-                 imagemagick mtools fuseiso
+                 imagemagick mtools fuseiso p7zip-full udftools
 pip install "internetarchive~=5.3"
 ```
 

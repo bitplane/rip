@@ -112,12 +112,30 @@ fs_run_in() {
   tmp_mount=$(mktemp -d)
   (
     set -e
+    local cleanup_type="fuse"
 
-    shell_trap "_fs_run_in_cleanup $tmp_mount"
+    shell_trap "_fs_run_in_cleanup $tmp_mount \$cleanup_type"
 
     case "$path" in
-      *.iso | *.img | /dev/* ) fuseiso      "$path" "$tmp_mount" ;;
-      *)                       archivemount "$path" "$tmp_mount" ;;
+      *.iso | *.img | /dev/* )
+        # Try fuseiso first (for ISO 9660)
+        if fuseiso "$path" "$tmp_mount" 2>/dev/null; then
+          cleanup_type="fuse"
+        elif command -v udfinfo &>/dev/null && udfinfo "$path" &>/dev/null 2>&1; then
+          # UDF detected, use 7z extraction
+          log_info "🔀 Detected UDF format, using 7z extraction"
+          7z x -o"$tmp_mount" "$path" >/dev/null 2>&1
+          cleanup_type="dir"
+        else
+          # Fall back to original fuseiso with error
+          fuseiso "$path" "$tmp_mount"
+          cleanup_type="fuse"
+        fi
+        ;;
+      *)
+        archivemount "$path" "$tmp_mount"
+        cleanup_type="fuse"
+        ;;
     esac
 
     pushd "$tmp_mount" > /dev/null
@@ -126,12 +144,21 @@ fs_run_in() {
 }
 
 _fs_run_in_cleanup() {
+    local mount_dir="$1"
+    local cleanup_type="${2:-fuse}"
+    
     # Only popd if we're in the mounted directory
-    if [[ "$(pwd)" == "$1" ]]; then
+    if [[ "$(pwd)" == "$mount_dir" ]]; then
         popd > /dev/null || log_warn "Failed to popd from mount directory"
     fi
-    fusermount -u  "$1" || true
-    rmdir          "$1" || true
+    
+    if [[ "$cleanup_type" == "fuse" ]]; then
+        fusermount -u "$mount_dir" || true
+        rmdir "$mount_dir" || true
+    else
+        # For 7z extraction, just remove the directory
+        rm -rf "$mount_dir" || true
+    fi
 }
 
 # Gets the real path given a case insensitive one
