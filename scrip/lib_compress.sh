@@ -5,7 +5,7 @@ compress_bins() {
   while IFS= read -r file; do
     local dest="${file}.gz"
     log_info "📦 compressing "$(basename "$file")""
-    if ! pigz -9 -c "$file" > "$dest"; then
+    if ! pigz -9 -n -c "$file" > "$dest"; then
         log_error "❌ failed to compress "$(basename "$file")""
         failed=1
         continue
