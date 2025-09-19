@@ -1,11 +1,22 @@
 #!/usr/bin/env bash
 
+# Creates temp dir - "disk" for /var/tmp, "ram" (default) for /tmp
+# AppArmor blocks FUSE mounts to /var/tmp
+make_tmpdir() {
+    local storage_type="${1:-ram}"
+    case "$storage_type" in
+        disk) mktemp -d -p "${TMPDIR:-/var/tmp}" ;;
+        ram)  mktemp -d -p "/tmp" ;;
+        *)    return 1 ;;
+    esac
+}
+
 # Gets the date when this filesystem path was last changed
 # Usage: fs_last_update ["path"]
 fs_last_update() {
     local path="${1:-.}"
     latest=$(
-        find "$path" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | \
+        find "$path" -maxdepth 1 \( -type f -o -type d \) -printf '%T@ %p\n' 2>/dev/null | \
         sort -nr       | head -n1        | \
         cut  -d' ' -f1 | cut -d'.' -f1)  || return 1
     date -d "@$latest" +"%Y-%m-%d" 
@@ -109,11 +120,19 @@ fs_run_in() {
   shift
 
   local tmp_mount
-  tmp_mount=$(mktemp -d)
+  local cleanup_type="fuse"
+  
+  # Detect format and choose appropriate temp storage
+  if command -v udfinfo &>/dev/null && udfinfo "$path" &>/dev/null 2>&1; then
+    # UDF needs disk storage for large DVDs
+    tmp_mount=$(make_tmpdir "disk")
+  else
+    # FUSE mounts need /tmp (AppArmor restriction)
+    tmp_mount=$(make_tmpdir "ram")
+  fi
+  
   (
     set -e
-    local cleanup_type="fuse"
-
     shell_trap "_fs_run_in_cleanup $tmp_mount \$cleanup_type"
 
     case "$path" in
