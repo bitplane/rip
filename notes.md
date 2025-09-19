@@ -1,6 +1,6 @@
 # Interesting observations
 
-## AppArmor FUSE Restriction (2025-09-19)
+## AppArmor FUSE
 
 AppArmor in Ubuntu denies fusemounts in `/var/tmp`, so we have two tempdirs:
 - `/tmp` (RAM) for FUSE mounts (fuseiso, archivemount)
