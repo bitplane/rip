@@ -16,7 +16,7 @@ make_tmpdir() {
 fs_last_update() {
     local path="${1:-.}"
     latest=$(
-        find "$path" -maxdepth 1 \( -type f -o -type d \) -printf '%T@ %p\n' 2>/dev/null | \
+        find "$path" -maxdepth 1 -type f ! -name "." -printf '%T@ %p\n' 2>/dev/null | \
         sort -nr       | head -n1        | \
         cut  -d' ' -f1 | cut -d'.' -f1)  || return 1
     date -d "@$latest" +"%Y-%m-%d" 
