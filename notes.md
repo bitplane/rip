@@ -25,3 +25,14 @@ Doing arithmetic on sentinel values eh?
 ```bash
 udfinfo disc.iso | grep "impid=*DVD Producer 1.0"
 ```
+
+## UDF duplicate file entries
+
+UDF filesystems can contain duplicate directory entries or files with identical paths. This happens with:
+- Multi-session discs with incremental updates
+- Cross-platform authoring creating multiple file representations
+- Overlapping directory structures from different burn sessions
+
+7z extraction requires `-y` flag to auto-overwrite duplicates, otherwise it hangs waiting for user input on overwrite prompts.
+
+Fixed in `lib_fs.sh:146`: `7z x -y -o"$tmp_mount" "$path"`
