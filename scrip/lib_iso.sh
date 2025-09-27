@@ -7,11 +7,11 @@ iso_get_name() {
   local file="$1"
 
   # Try ISO 9660 first
-  name=$(isoinfo -d -i "$file" 2>/dev/null | grep "^Volume id:" | sed 's/Volume id:[ ]*//;s/[^A-Za-z0-9._-]/_/g')
+  name=$(isoinfo -d -i "$file" 2>/dev/null | grep "^Volume id:" | sed 's/Volume id:[ ]*//;s/[^A-Za-z0-9._-]/_/g;s/__*/_/g;s/_*$//')
   
   # If ISO fails, try UDF
   if [[ -z "$name" ]] && iso_is_udf "$file"; then
-    name=$(udflabel "$file" 2>/dev/null | sed 's/[^A-Za-z0-9._-]/_/g')
+    name=$(udflabel "$file" 2>/dev/null | sed 's/[^A-Za-z0-9._-]/_/g;s/__*/_/g;s/_*$//')
   fi
   
   if [[ -n "$name" ]]; then
