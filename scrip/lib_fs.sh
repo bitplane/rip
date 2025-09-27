@@ -143,7 +143,7 @@ fs_run_in() {
         elif command -v udfinfo &>/dev/null && udfinfo "$path" &>/dev/null 2>&1; then
           # UDF detected, use 7z extraction
           log_info "🔀 Detected UDF format, using 7z extraction"
-          7z x -o"$tmp_mount" "$path" >/dev/null 2>&1
+          7z x -y -o"$tmp_mount" "$path" >/dev/null 2>&1
           cleanup_type="dir"
         else
           # Fall back to original fuseiso with error
