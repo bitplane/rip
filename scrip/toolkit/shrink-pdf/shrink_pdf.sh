@@ -218,7 +218,7 @@ main() {
         exit 1
     fi
     
-    ORIGINAL_SIZE_HUMAN=$(numfmt --to=iec-i --suffix=B $ORIGINAL_SIZE)
+    ORIGINAL_SIZE_HUMAN=$(numfmt --to=iec-i --suffix=B -- $ORIGINAL_SIZE)
 
     echo -e "Settings: MAX_WIDTH=${CYAN}$MAX_WIDTH${RESET}, QUALITY=${CYAN}$QUALITY${RESET}, PARALLEL_JOBS=${CYAN}$PARALLEL_JOBS${RESET}"
     echo -e "File: ${BOLD}$BASE_NAME${RESET} (${MAGENTA}$ORIGINAL_SIZE_HUMAN${RESET})"
@@ -287,7 +287,7 @@ main() {
         exit 1
     fi
     
-    NEW_SIZE_HUMAN=$(numfmt --to=iec-i --suffix=B $NEW_SIZE)
+    NEW_SIZE_HUMAN=$(numfmt --to=iec-i --suffix=B -- $NEW_SIZE)
     
     # Make sure we have valid numbers before calculation
     SAVED_BYTES=$((ORIGINAL_SIZE - NEW_SIZE))
@@ -298,7 +298,7 @@ main() {
         rm -rf "$TEMP_DIR"
         exit 1
     fi
-    SAVED_BYTES_HUMAN=$(numfmt --to=iec-i --suffix=B $SAVED_BYTES)
+    SAVED_BYTES_HUMAN=$(numfmt --to=iec-i --suffix=B -- $SAVED_BYTES)
 
     echo -e " - Compression results:"
     echo -e "   - Original size: ${MAGENTA}$ORIGINAL_SIZE_HUMAN${RESET}, new size: ${MAGENTA}$NEW_SIZE_HUMAN${RESET}, saved: ${GREEN}$SAVED_BYTES_HUMAN${RESET} (${GREEN}$SAVED_PERCENT%${RESET})"

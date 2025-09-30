@@ -1,4 +1,5 @@
 *.log
+*.stderr
 *~
 # ignore workdirs
 [0-9].*/*
