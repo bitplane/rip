@@ -36,3 +36,10 @@ UDF filesystems can contain duplicate directory entries or files with identical 
 7z extraction requires `-y` flag to auto-overwrite duplicates, otherwise it hangs waiting for user input on overwrite prompts.
 
 Fixed in `lib_fs.sh:146`: `7z x -y -o"$tmp_mount" "$path"`
+
+## Volume ID artifacts
+
+### `Iso_VolumID_Not_Set`
+
+Probably TT Games' internal mastering tools based on mkisofs.
+
