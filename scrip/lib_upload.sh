@@ -31,7 +31,7 @@ upload_directory() {
 
       if [[ $count -eq $batch_size ]]; then
         ia upload -c --keep-directories --retries=100 --sleep=120 "${meta_args[@]}" "$item_name" -- "${batch[@]}" || return 1
-        echo Uploaded "$(du -ch "${batch[@]}" | tail -1 | cut -f 1) ($total files in total)"...
+        echo Uploaded "$(du -ch -- "${batch[@]}" | tail -1 | cut -f 1) ($total files in total)"...
         batch=()
         count=0
       fi
