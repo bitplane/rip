@@ -71,6 +71,7 @@ queue_success() {
   
   log_info "🎉 moving $work to $dest"
   mv "$work" "$dest" || return 1
+  ui_notify_success "$(basename "$(dirname "$work")")" "Completed $(basename "$work")"
 }
 
 queue_get_fail_dir() {
@@ -96,6 +97,7 @@ queue_fail() {
   fi
 
   log_error "💩 moving $work to $dest"
+  ui_notify_failure "$(basename "$(dirname "$work")")" "Failed $(basename "$work")"
   mv "$work" "$dest" || {
     log_error "Failed to move $work to failed queue"
     return 1
