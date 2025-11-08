@@ -7,6 +7,7 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Source libraries
 source "$BASE_DIR/scrip/libs.sh"
+source "$BASE_DIR/scrip/lib_ui_widgets.sh"
 
 # Global vars
 _DIP_DIR="$BASE_DIR"
@@ -93,34 +94,71 @@ _dip_list_files() {
   [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
 }
 
-# Draw a single row
-_dip_row() {
+# Render callback for list entries
+# This is called by ui_list for each visible entry
+_dip_render_entry() {
   local selected=$1
-  local symbol=$2
-  local text=$3
-  local details=${4:-""}
-  
-  # Format based on selection
+  local idx=$2
+  local entry="$3"
+
+  local symbol=" "
+  local text=""
+  local details=""
+
+  # Build the row content based on current view
+  case $_DIP_VIEW in
+    browse)
+      [[ "$entry" != ".." ]] && symbol=$(ui_emoji "$_DIP_DIR/$entry")
+
+      if [[ "$entry" != ".." && -d "$_DIP_DIR/$entry/.meta" ]]; then
+        local tags=$(find "$_DIP_DIR/$entry/.meta" -maxdepth 1 -mindepth 1 -type d -printf "%f " 2>/dev/null | head -c 40)
+        text="[$entry]"
+        details="${tags:-(no tags)}"
+      else
+        text="$entry"
+      fi
+      ;;
+    metadata)
+      local count=$(find "$_DIP_DIR/$_DIP_ITEM/.meta/$entry" -type f 2>/dev/null | wc -l)
+      text="$entry ($count):"
+
+      if [[ $count -gt 0 ]]; then
+        local preview=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$entry/0" 2>/dev/null | head -n 1 | cut -c 1-40)
+        [[ ${#preview} -gt 39 ]] && preview="${preview:0:37}..."
+        details="$preview"
+      else
+        details="(empty)"
+      fi
+      ;;
+    files)
+      text="$entry:"
+      local content=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$entry" 2>/dev/null | head -n 1 | cut -c 1-50)
+      [[ ${#content} -gt 49 ]] && content="${content:0:47}..."
+      details="$content"
+      ;;
+  esac
+
+  # Render the row
   if [[ $selected -eq 1 ]]; then
     tput rev; tput bold
     printf " %s %s " "$symbol" "$text"
-    
+
     if [[ -n "$details" ]]; then
       tput sgr0; tput rev; tput setaf 6
       printf "%s" "$details"
     fi
-    
+
     tput sgr0
   else
     printf " %s %s " "$symbol" "$text"
-    
+
     if [[ -n "$details" ]]; then
       tput setaf 6
       printf "%s" "$details"
       tput sgr0
     fi
   fi
-  
+
   printf "\r\n"
 }
 
@@ -157,94 +195,35 @@ _dip_prompt() {
   esac
 }
 
-# Draw screen
+# Draw screen using widget library
 _dip_draw() {
   local term_height=$(tput lines)
   local visible_rows=$((term_height - 4))
-  
+
   # Clear screen
   clear
-  
-  # Draw header
-  tput bold
+
+  # Draw header using ui_text
+  local header_text=""
   case $_DIP_VIEW in
     browse)
-      printf "Directory: %s\r\n" "$_DIP_DIR"
+      header_text="Directory: $_DIP_DIR"
       ;;
     metadata)
-      printf "Metadata for: %s\r\n" "$_DIP_ITEM"
+      header_text="Metadata for: $_DIP_ITEM"
       ;;
     files)
-      printf "Tag: %s in %s\r\n" "$_DIP_TAG" "$_DIP_ITEM"
+      header_text="Tag: $_DIP_TAG in $_DIP_ITEM"
       ;;
   esac
-  tput sgr0
-  
-  # Calculate start index for scrolling
-  local start_idx=0
-  if [[ ${#_DIP_ENTRIES[@]} -gt $visible_rows ]]; then
-    local half_view=$((visible_rows / 2))
-    
-    if [[ $_DIP_CURSOR -ge $half_view ]]; then
-      start_idx=$((_DIP_CURSOR - half_view))
-    fi
-    
-    if [[ $((start_idx + visible_rows)) -gt ${#_DIP_ENTRIES[@]} ]]; then
-      start_idx=$((${#_DIP_ENTRIES[@]} - visible_rows))
-    fi
-  fi
-  
-  # Draw entries
-  local end_idx=$((start_idx + visible_rows))
-  [[ $end_idx -gt ${#_DIP_ENTRIES[@]} ]] && end_idx=${#_DIP_ENTRIES[@]}
-  
-  for ((i=start_idx; i<end_idx; i++)); do
-    local entry="${_DIP_ENTRIES[$i]}"
-    local selected=0
-    local symbol=" "
-    local details=""
-    
-    [[ $i -eq $_DIP_CURSOR ]] && selected=1
-    
-    case $_DIP_VIEW in
-      browse)
-        [[ "$entry" != ".." ]] && symbol=$(ui_emoji "$_DIP_DIR/$entry")
-        
-        if [[ "$entry" != ".." && -d "$_DIP_DIR/$entry/.meta" ]]; then
-          local tags=$(find "$_DIP_DIR/$entry/.meta" -maxdepth 1 -mindepth 1 -type d -printf "%f " 2>/dev/null | head -c 40)
-          details="${tags:-(no tags)}"
-          _dip_row $selected "$symbol" "[$entry]" "$details"
-        else
-          _dip_row $selected "$symbol" "$entry"
-        fi
-        ;;
-      metadata)
-        local count=$(find "$_DIP_DIR/$_DIP_ITEM/.meta/$entry" -type f 2>/dev/null | wc -l)
-        
-        if [[ $count -gt 0 ]]; then
-          local preview=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$entry/0" 2>/dev/null | head -n 1 | cut -c 1-40)
-          [[ ${#preview} -gt 39 ]] && preview="${preview:0:37}..."
-          details="$preview"
-        else
-          details="(empty)"
-        fi
-        
-        _dip_row $selected "$symbol" "$entry ($count):" "$details"
-        ;;
-      files)
-        local content=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$entry" 2>/dev/null | head -n 1 | cut -c 1-50)
-        [[ ${#content} -gt 49 ]] && content="${content:0:47}..."
-        
-        _dip_row $selected "$symbol" "$entry:" "$content"
-        ;;
-    esac
-  done
-  
+  ui_text "$header_text" 1 0 ""
+
+  # Draw list using ui_list widget
+  ui_list _DIP_ENTRIES $_DIP_CURSOR $visible_rows _dip_render_entry
+
   # Draw status bar
-  tput cup $((term_height - 2)) 0
-  tput bold
-  printf "%s\r\n" "$(_dip_status_bar)"
-  tput sgr0
+  ui_line $((term_height - 2))
+  ui_text "$(_dip_status_bar)" 1 0 ""
 }
 
 # Add metadata to item
@@ -531,12 +510,6 @@ dip_main() {
     _dip_draw
     _dip_key
   done
-}
-
-dip_new() {
-    _dip_in
-    ui_widget_add screen dip 0 0 $(tput cols) $(tput lines) /tmp/ui-test
-    ui_widget_draw /tmp/ui-test | rt -d '\t'
 }
 
 # Run if executed directly
