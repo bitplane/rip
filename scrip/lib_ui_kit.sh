@@ -26,7 +26,7 @@
 
 
 # Adds a widget to the ui graph
-# Usage: path=$(ui_widget_add parent type x y w h)
+# Usage: path=$(ui_kit_add parent type x y w h)
 ui_kit_add() {
     local parent="$1" t="$2" x="$3" y="$4" w="$5" h="$6" path
     path="$(find "$parent" -type d -maxdepth 1 -mindepth 1 | wc -l)"
@@ -51,14 +51,14 @@ ui_kit_on_draw() {
     echo $t $1
     "ui_kit_on_draw_$t" "$1"
     #for child in $(find "$1" -type d -maxdepth 1); do
-    #    ui_widget_draw $child
+    #    ui_kit_on_draw $child
     #done
 }
 
 # Add the screen
 ui_kit_add_screen() {
     local path
-    path=$(ui_widget_add "$1" screen 0 0 "$(tput cols)" "$(tput lines)")
+    path=$(ui_kit_add "$1" screen 0 0 "$(tput cols)" "$(tput lines)")
     echo $2 | meta_set "$1" "ui.title" 0
 }
 
@@ -67,7 +67,7 @@ ui_kit_add_screen() {
 ui_kit_on_draw_screen() {
     read w h < <(meta_get ui.pos 0 "$1")
     title_bar=$(ui_center_text "$w" "$(meta_get ui.title 0 "$1")")
-    ui_widget_buffer_text "$title_bar"
-    #ui_widget_buffer_new $((h - 2))
-    ui_widget_buffer_text "$title_bar"
+    ui_kit_blit_text "$title_bar"
+    #ui_kit_blit_new $((h - 2))
+    ui_kit_blit_text "$title_bar"
 }
