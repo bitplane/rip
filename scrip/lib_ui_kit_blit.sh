@@ -39,13 +39,15 @@ ui_kit_blit() {
 }
 
 # Create a string of text for the UI
-# Usage: ui_text "text" [escapes]
+# Usage: ui_kit_blit_text "text" [escapes]
 ui_kit_blit_text() {
-  awk -v text="$1" -v s="$2" -v r=$'\033[0m' '
+  awk -v text="$1" -v s="${2:-\033[0m}" '
     BEGIN {
       n = split(text, chars, "")
-      printf "%s", s
-      for (i = 1; i <= n; i++) { printf "%s", chars[i]; if (i < n) printf "\t"}
-      printf "%s\n", r
+      for (i = 1; i <= n; i++) {
+        printf "%s%s", s, chars[i]
+        if (i < n) printf "\t"
+      }
+      print ""
     }'
 }
