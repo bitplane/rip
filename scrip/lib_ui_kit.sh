@@ -170,6 +170,32 @@ ui_kit_set_size() {
     echo "$2 $3" | ui_kit_set "$1" "size"
 }
 
+# Get widget absolute position (by summing positions up to root)
+# Usage: read ax ay <<< "$(ui_kit_abs_pos path)"
+ui_kit_abs_pos() {
+    local path="$1"
+    local files="" p="$path"
+
+    # Build list of pos files from widget up to root
+    while [[ -d "$p/.meta" ]]; do
+        files="$p/.meta/ui.pos/0 $files"
+        p=$(dirname "$p")
+        [[ "$p" == "/" || "$p" == "." ]] && break
+    done
+
+    # One awk call to sum all positions
+    awk 'BEGIN { x=0; y=0 } { x+=$1; y+=$2 } END { print x, y }' $files
+}
+
+# Convert absolute coords to relative coords for a widget
+# Usage: read rx ry <<< "$(ui_kit_rel_pos path abs_x abs_y)"
+ui_kit_rel_pos() {
+    local path="$1" ax="$2" ay="$3" wx wy
+
+    read wx wy <<< "$(ui_kit_abs_pos "$path")"
+    echo "$((ax - wx)) $((ay - wy))"
+}
+
 #
 # Event dispatch
 #
