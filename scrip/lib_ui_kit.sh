@@ -6,22 +6,27 @@
 # Tree structure on disk:
 #   /tmp/ui_xxx/              # root widget
 #   ├── .meta/
-#   │   ├── ui.type/0         # widget type name
-#   │   ├── ui.pos/0          # "x\ny" relative to parent
-#   │   ├── ui.size/0         # "w\nh"
-#   │   ├── ui.clip/0         # "x\ny\nw\nh" visible region
+#   │   ├── ui.type/0         # space-delimited traits, e.g., "list scrollable focusable"
+#   │   ├── ui.pos/0          # "x y" relative to parent
+#   │   ├── ui.size/0         # "w h"
+#   │   ├── ui.clip/0         # "x y w h" visible region
 #   │   ├── ui.buffer/0       # tab-delimited character buffer
-#   │   ├── ui.dirty/0        # "1" if needs redraw
-#   │   └── ui.focusable/0    # "1" if can receive focus
+#   │   ├── ui.rendered/0     # timestamp of last render
+#   │   └── ui.focused/0      # path to focused child widget
 #   ├── 0/                    # first child
 #   ├── 1/                    # second child
 #   └── 2/                    # third child
 #
 # Render pipeline:
 #   1. Walk tree depth-first
-#   2. For each dirty widget, call ui_widget_<type>_draw
-#   3. Composite child buffers onto parent buffer
-#   4. Output root buffer to terminal
+#   2. For each dirty widget, call ui_widget_<trait>_draw for each trait
+#   3. Composite all buffers in one awk call
+#   4. Output to terminal
+#
+# Event dispatch:
+#   1. Try each trait's ui_widget_<trait>_event in order
+#   2. First handler returning 0 stops dispatch
+#   3. If no handler returns 0, bubble to parent widget
 #
 
 # Create the root widget (usually a screen)
@@ -165,6 +170,62 @@ ui_kit_set_size() {
     echo "$2 $3" | ui_kit_set "$1" "size"
 }
 
+#
+# Event dispatch
+#
+
+# Dispatch event to widget, bubble up if not handled
+# Returns 0 if handled, 1 if not
+# Usage: ui_event path event [args...]
+ui_event() {
+    local path="$1" event="$2"
+    shift 2
+    local wtype parent
+
+    # Try each trait's handler in order
+    for wtype in $(ui_kit_get "$path" "type"); do
+        if type "ui_widget_${wtype}_event" &>/dev/null; then
+            "ui_widget_${wtype}_event" "$path" "$event" "$@" && return 0
+        fi
+    done
+
+    # Bubble to parent
+    parent=$(dirname "$path")
+    [[ "$parent" != "$path" && -d "$parent/.meta" ]] && ui_event "$parent" "$event" "$@"
+}
+
+#
+# Focus management
+#
+
+# Get currently focused widget path
+# Usage: focused=$(ui_kit_get_focus root)
+ui_kit_get_focus() {
+    ui_kit_get "$1" "focused"
+}
+
+# Set focus to a widget (sends focus:out/focus:in events)
+# Usage: ui_kit_set_focus root target
+ui_kit_set_focus() {
+    local root="$1" target="$2"
+    local current
+
+    current=$(ui_kit_get_focus "$root")
+
+    # Send focus:out to current
+    [[ -n "$current" && -d "$current" ]] && ui_event "$current" "focus:out"
+
+    # Update focus
+    echo "$target" | ui_kit_set "$root" "focused"
+
+    # Send focus:in to new target
+    [[ -n "$target" && -d "$target" ]] && ui_event "$target" "focus:in"
+}
+
+#
+# Tree traversal
+#
+
 # Walk the tree depth-first, calling a function for each widget
 # Usage: ui_kit_walk root callback
 # Callback receives: path depth
@@ -206,12 +267,12 @@ _ui_kit_redraw_if_dirty() {
     local wtype
 
     if ui_kit_is_dirty "$path"; then
-        wtype=$(ui_kit_get "$path" "type")
-
-        # Call the widget's draw function if it exists
-        if type "ui_widget_${wtype}_draw" &>/dev/null; then
-            "ui_widget_${wtype}_draw" "$path"
-        fi
+        # Call draw function for each trait
+        for wtype in $(ui_kit_get "$path" "type"); do
+            if type "ui_widget_${wtype}_draw" &>/dev/null; then
+                "ui_widget_${wtype}_draw" "$path"
+            fi
+        done
 
         ui_kit_mark_rendered "$path"
     fi
@@ -315,4 +376,26 @@ _ui_kit_build_manifest() {
 # Usage: ui_kit_destroy root
 ui_kit_destroy() {
     rm -rf "$1"
+}
+
+#
+# Built-in trait handlers
+#
+
+# focusable - handles focus:in and focus:out events
+ui_widget_focusable_event() {
+    local path="$1" event="$2"
+    case "$event" in
+        focus:in)
+            echo "1" | ui_kit_set "$path" "has_focus"
+            ui_kit_dirty "$path"
+            return 0
+            ;;
+        focus:out)
+            echo "0" | ui_kit_set "$path" "has_focus"
+            ui_kit_dirty "$path"
+            return 0
+            ;;
+    esac
+    return 1
 }
