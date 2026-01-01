@@ -43,12 +43,12 @@ ui_kit_add() {
     path="$parent/$idx"
 
     mkdir -p "$path"
-    echo "$wtype"               | meta_set "ui.type"      0 "$path"
-    printf "%s\n%s\n" "$x" "$y" | meta_set "ui.pos"       0 "$path"
-    printf "%s\n%s\n" "$w" "$h" | meta_set "ui.size"      0 "$path"
-    printf "0\n0\n%s\n%s\n" "$w" "$h" | meta_set "ui.clip" 0 "$path"
-    echo "$focusable"           | meta_set "ui.focusable" 0 "$path"
-    ui_kit_blit_new "$w" "$h"   | meta_set "ui.buffer"    0 "$path"
+    echo "$wtype"           | meta_set "ui.type"      0 "$path"
+    echo "$x $y"            | meta_set "ui.pos"       0 "$path"
+    echo "$w $h"            | meta_set "ui.size"      0 "$path"
+    echo "0 0 $w $h"        | meta_set "ui.clip"      0 "$path"
+    echo "$focusable"       | meta_set "ui.focusable" 0 "$path"
+    ui_kit_blit_new "$w" "$h" | meta_set "ui.buffer"  0 "$path"
 
     echo "$path"
 }
@@ -144,17 +144,25 @@ ui_kit_dirty() {
 # Get widget dimensions as "w h"
 # Usage: read w h <<< "$(ui_kit_size path)"
 ui_kit_size() {
-    local size
-    size=$(ui_kit_get "$1" "size")
-    echo "$size" | tr '\n' ' '
+    ui_kit_get "$1" "size"
 }
 
 # Get widget position as "x y"
 # Usage: read x y <<< "$(ui_kit_pos path)"
 ui_kit_pos() {
-    local pos
-    pos=$(ui_kit_get "$1" "pos")
-    echo "$pos" | tr '\n' ' '
+    ui_kit_get "$1" "pos"
+}
+
+# Set widget position
+# Usage: ui_kit_set_pos path x y
+ui_kit_set_pos() {
+    echo "$2 $3" | ui_kit_set "$1" "pos"
+}
+
+# Set widget size
+# Usage: ui_kit_set_size path w h
+ui_kit_set_size() {
+    echo "$2 $3" | ui_kit_set "$1" "size"
 }
 
 # Walk the tree depth-first, calling a function for each widget
