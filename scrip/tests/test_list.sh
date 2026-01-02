@@ -15,12 +15,6 @@ ui_widget_app_event() {
     return 1
 }
 
-# Create items file with 50 items
-items_file=$(mktemp)
-for i in $(seq 1 50); do
-    printf "Item %03d - Test entry\n" "$i"
-done > "$items_file"
-
 # Create root with app trait to receive bubbled events
 ui_kit_init
 echo "app root" > "$_UI_KIT_ROOT/type"
@@ -28,7 +22,8 @@ echo "app root" > "$_UI_KIT_ROOT/type"
 # Create list on the left (most of the screen)
 read term_w term_h < "$_UI_KIT_ROOT/size"
 list_w=$((term_w - 20))
-list=$(ui_widget_list "$_UI_KIT_ROOT" "$items_file" 1 1 "$list_w" $((term_h - 2)))
+list=$(for i in $(seq 1 50); do printf "Item %03d - Test entry\n" "$i"; done |
+       ui_widget_list "$_UI_KIT_ROOT" 1 1 "$list_w" $((term_h - 2)))
 
 # Create exit button on the right
 btn=$(ui_widget_button "$_UI_KIT_ROOT" "Exit" $((term_w - 16)) 2 12 3)
@@ -37,7 +32,7 @@ btn=$(ui_widget_button "$_UI_KIT_ROOT" "Exit" $((term_w - 16)) 2 12 3)
 ui_kit_set_focus "$list"
 
 ui_kit_init_term
-trap 'ui_kit_cleanup; rm -f "$items_file"' EXIT
+trap 'ui_kit_cleanup' EXIT
 
 while true; do
     printf '\e[H'
