@@ -15,10 +15,6 @@ ui_widget_app_event() {
     return 1
 }
 
-# Get actual terminal size
-term_w=$(tput cols)
-term_h=$(tput lines)
-
 # Create items file with 50 items
 items_file=$(mktemp)
 for i in $(seq 1 50); do
@@ -27,12 +23,10 @@ done > "$items_file"
 
 # Create root with app trait to receive bubbled events
 ui_kit_init
-echo "app root" | ui_kit_set "$_UI_KIT_ROOT" "type"
-echo "0 0" | ui_kit_set "$_UI_KIT_ROOT" "pos"
-echo "$term_w $term_h" | ui_kit_set "$_UI_KIT_ROOT" "size"
-ui_kit_blit_new "$term_w" "$term_h" $'\e[40m' > "$_UI_KIT_ROOT/buffer"
+echo "app root" > "$_UI_KIT_ROOT/type"
 
 # Create list on the left (most of the screen)
+read term_w term_h < "$_UI_KIT_ROOT/size"
 list_w=$((term_w - 20))
 list=$(ui_widget_list "$_UI_KIT_ROOT" "$items_file" 1 1 "$list_w" $((term_h - 2)))
 

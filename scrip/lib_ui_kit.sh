@@ -31,10 +31,14 @@
 declare -g _UI_KIT_ROOT=""
 
 # Create the root widget (usually a screen)
-# Usage: ui_kit_init  (then use $_UI_KIT_ROOT)
+# Usage: ui_kit_init [w h]  (defaults to terminal size, use $_UI_KIT_ROOT)
 ui_kit_init() {
+    local w="${1:-$(tput cols)}" h="${2:-$(tput lines)}"
     _UI_KIT_ROOT=$(mktemp -d)
-    # Initialize focused to empty
+    echo "root" > "$_UI_KIT_ROOT/type"
+    echo "0 0" > "$_UI_KIT_ROOT/pos"
+    echo "$w $h" > "$_UI_KIT_ROOT/size"
+    ui_kit_blit_new "$w" "$h" > "$_UI_KIT_ROOT/buffer"
     touch "$_UI_KIT_ROOT/focused"
 }
 
