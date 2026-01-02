@@ -35,6 +35,9 @@ declare -g _UI_KIT_ROOT=""
 # Usage: ui_kit_init  (then use $_UI_KIT_ROOT)
 ui_kit_init() {
     _UI_KIT_ROOT=$(mktemp -d)
+    # Initialize focused to empty
+    mkdir -p "$_UI_KIT_ROOT/.meta/ui.focused"
+    touch "$_UI_KIT_ROOT/.meta/ui.focused/0"
 }
 
 # Adds a widget to the tree
