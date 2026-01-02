@@ -29,18 +29,20 @@
 #   3. If no handler returns 0, bubble to parent widget
 #
 
+# Global root widget path
+declare -g _UI_KIT_ROOT=""
+
 # Create the root widget (usually a screen)
-# Usage: root=$(ui_kit_init)
+# Usage: ui_kit_init  (sets $_UI_KIT_ROOT)
 ui_kit_init() {
-    local root
-    root=$(mktemp -d)
-    echo "$root"
+    _UI_KIT_ROOT=$(mktemp -d)
+    echo "$_UI_KIT_ROOT"
 }
 
 # Adds a widget to the tree
-# Usage: path=$(ui_kit_add parent type x y w h [focusable])
+# Usage: path=$(ui_kit_add parent type x y w h)
 ui_kit_add() {
-    local parent="$1" wtype="$2" x="$3" y="$4" w="$5" h="$6" focusable="${7:-0}"
+    local parent="$1" wtype="$2" x="$3" y="$4" w="$5" h="$6"
     local idx path
 
     # Count existing children to get next index
@@ -52,7 +54,6 @@ ui_kit_add() {
     echo "$x $y"            | meta_set "ui.pos"       0 "$path"
     echo "$w $h"            | meta_set "ui.size"      0 "$path"
     echo "0 0 $w $h"        | meta_set "ui.clip"      0 "$path"
-    echo "$focusable"       | meta_set "ui.focusable" 0 "$path"
     ui_kit_blit_new "$w" "$h" | meta_set "ui.buffer"  0 "$path"
 
     echo "$path"
@@ -225,27 +226,39 @@ ui_event() {
 #
 
 # Get currently focused widget path
-# Usage: focused=$(ui_kit_get_focus root)
+# Usage: focused=$(ui_kit_get_focus)
 ui_kit_get_focus() {
-    ui_kit_get "$1" "focused"
+    ui_kit_get "$_UI_KIT_ROOT" "focused"
 }
 
-# Set focus to a widget (sends focus:out/focus:in events)
-# Usage: ui_kit_set_focus root target
+# Check if a widget has focus
+# Usage: ui_kit_has_focus path && echo "focused"
+ui_kit_has_focus() {
+    [[ "$(ui_kit_get_focus)" == "$1" ]]
+}
+
+# Set focus to a widget (sends focus:out/focus:in events, marks both dirty)
+# Usage: ui_kit_set_focus target
 ui_kit_set_focus() {
-    local root="$1" target="$2"
+    local target="$1"
     local current
 
-    current=$(ui_kit_get_focus "$root")
+    current=$(ui_kit_get_focus)
 
-    # Send focus:out to current
-    [[ -n "$current" && -d "$current" ]] && ui_event "$current" "focus:out"
+    # Send focus:out to current and mark dirty
+    if [[ -n "$current" && -d "$current" ]]; then
+        ui_event "$current" "focus:out"
+        ui_kit_dirty "$current"
+    fi
 
     # Update focus
-    echo "$target" | ui_kit_set "$root" "focused"
+    echo "$target" | ui_kit_set "$_UI_KIT_ROOT" "focused"
 
-    # Send focus:in to new target
-    [[ -n "$target" && -d "$target" ]] && ui_event "$target" "focus:in"
+    # Send focus:in to new target and mark dirty
+    if [[ -n "$target" && -d "$target" ]]; then
+        ui_event "$target" "focus:in"
+        ui_kit_dirty "$target"
+    fi
 }
 
 #
@@ -281,8 +294,8 @@ ui_kit_render() {
     # Second pass: build manifest of all buffers with absolute positions
     _ui_kit_build_manifest "$root" "" > "$manifest"
 
-    # Composite everything in one awk call
-    awk -f "$script_dir/buffer_blit.awk" < "$manifest"
+    # Composite and display (strip tabs for terminal output)
+    awk -f "$script_dir/buffer_blit.awk" < "$manifest" | tr -d '\t'
 
     rm -f "$manifest"
 }
@@ -422,28 +435,6 @@ ui_kit_hit_test() {
                 print $1
             }
         '
-}
-
-#
-# Built-in trait handlers
-#
-
-# focusable - handles focus:in and focus:out events
-ui_widget_focusable_event() {
-    local path="$1" event="$2"
-    case "$event" in
-        focus:in)
-            echo "1" | ui_kit_set "$path" "has_focus"
-            ui_kit_dirty "$path"
-            return 0
-            ;;
-        focus:out)
-            echo "0" | ui_kit_set "$path" "has_focus"
-            ui_kit_dirty "$path"
-            return 0
-            ;;
-    esac
-    return 1
 }
 
 #

@@ -82,14 +82,11 @@ END {
         }
     }
     
-    # Output the blitted buffer
+    # Output the blitted buffer (tab-delimited like input buffers)
     for (y = 0; y < max_y; y++) {
         for (x = 0; x < max_x; x++) {
             printf("%s%s", result[y, x], (x < max_x - 1) ? "\t" : "")
         }
-        # Only print newline if not the last line
-        if (y < max_y - 1) {
-            printf("\n")
-        }
+        if (y < max_y - 1) printf("\n")
     }
 }
