@@ -405,6 +405,26 @@ ui_kit_destroy() {
 }
 
 #
+# Hit testing
+#
+
+# Find the deepest widget at absolute coordinates (respecting clip regions)
+# Returns the widget path, or empty if no hit
+# Usage: widget=$(ui_kit_hit_test root ax ay)
+ui_kit_hit_test() {
+    local root="$1" ax="$2" ay="$3"
+
+    _ui_kit_build_manifest "$root" "" "" |
+        tac |
+        awk -v x="$ax" -v y="$ay" '
+            x >= $2 && x < $2+$6 && y >= $3 && y < $3+$7 {
+                sub(/\/.meta\/ui\.buffer\/0$/, "", $1)
+                print $1
+            }
+        '
+}
+
+#
 # Built-in trait handlers
 #
 
@@ -424,4 +444,173 @@ ui_widget_focusable_event() {
             ;;
     esac
     return 1
+}
+
+#
+# Terminal setup and input
+#
+
+# Initialize terminal for UI (call once at start)
+# Usage: ui_kit_init_term
+ui_kit_init_term() {
+    # Hide cursor
+    printf '\e[?25l'
+    # Enable mouse reporting (SGR extended mode)
+    printf '\e[?1000h\e[?1006h'
+    # Enable raw mode
+    stty -echo -icanon
+}
+
+# Cleanup terminal (call on exit via trap)
+# Usage: trap ui_kit_cleanup EXIT
+ui_kit_cleanup() {
+    # Disable mouse reporting
+    printf '\e[?1006l\e[?1000l'
+    # Show cursor
+    printf '\e[?25h'
+    # Restore terminal
+    stty echo icanon
+}
+
+# Read and parse terminal input
+# Outputs: "event arg1 arg2 ..." or empty for unknown
+# Usage: read -r event args <<< "$(ui_kit_read_input)"
+ui_kit_read_input() {
+    local c
+    IFS= read -rsn1 c
+
+    case "$c" in
+        $'\e') _ui_kit_read_escape ;;
+        $'\x01') echo "key ctrl+a" ;;
+        $'\x02') echo "key ctrl+b" ;;
+        $'\x03') echo "key ctrl+c" ;;
+        $'\x04') echo "key ctrl+d" ;;
+        $'\x05') echo "key ctrl+e" ;;
+        $'\x06') echo "key ctrl+f" ;;
+        $'\x07') echo "key ctrl+g" ;;
+        $'\x08') echo "key backspace" ;;
+        $'\x09') echo "key tab" ;;
+        $'\x0a') echo "key enter" ;;
+        $'\x0b') echo "key ctrl+k" ;;
+        $'\x0c') echo "key ctrl+l" ;;
+        $'\x0d') echo "key enter" ;;
+        $'\x0e') echo "key ctrl+n" ;;
+        $'\x0f') echo "key ctrl+o" ;;
+        $'\x10') echo "key ctrl+p" ;;
+        $'\x11') echo "key ctrl+q" ;;
+        $'\x12') echo "key ctrl+r" ;;
+        $'\x13') echo "key ctrl+s" ;;
+        $'\x14') echo "key ctrl+t" ;;
+        $'\x15') echo "key ctrl+u" ;;
+        $'\x16') echo "key ctrl+v" ;;
+        $'\x17') echo "key ctrl+w" ;;
+        $'\x18') echo "key ctrl+x" ;;
+        $'\x19') echo "key ctrl+y" ;;
+        $'\x1a') echo "key ctrl+z" ;;
+        $'\x7f') echo "key backspace" ;;
+        '') echo "key ctrl+space" ;;
+        *) echo "key $c" ;;
+    esac
+}
+
+# Internal: parse escape sequences
+_ui_kit_read_escape() {
+    local c seq=""
+
+    # Try to read next char with timeout
+    IFS= read -rsn1 -t 0.01 c || { echo "key esc"; return; }
+
+    case "$c" in
+        '[')
+            # CSI sequence - read until letter or ~
+            while IFS= read -rsn1 -t 0.01 c; do
+                seq+="$c"
+                [[ "$c" =~ [A-Za-z~] ]] && break
+            done
+            _ui_kit_parse_csi "$seq"
+            ;;
+        'O')
+            # SS3 sequence (F1-F4)
+            IFS= read -rsn1 -t 0.01 c
+            case "$c" in
+                P) echo "key f1" ;;
+                Q) echo "key f2" ;;
+                R) echo "key f3" ;;
+                S) echo "key f4" ;;
+            esac
+            ;;
+        *)
+            # Alt+key
+            echo "key alt+$c"
+            ;;
+    esac
+}
+
+# Internal: parse CSI sequences
+_ui_kit_parse_csi() {
+    local seq="$1"
+
+    case "$seq" in
+        A) echo "key up" ;;
+        B) echo "key down" ;;
+        C) echo "key right" ;;
+        D) echo "key left" ;;
+        H) echo "key home" ;;
+        F) echo "key end" ;;
+        3~) echo "key delete" ;;
+        5~) echo "key pageup" ;;
+        6~) echo "key pagedown" ;;
+        15~) echo "key f5" ;;
+        17~) echo "key f6" ;;
+        18~) echo "key f7" ;;
+        19~) echo "key f8" ;;
+        20~) echo "key f9" ;;
+        21~) echo "key f10" ;;
+        23~) echo "key f11" ;;
+        24~) echo "key f12" ;;
+        '<'*)
+            # SGR mouse: <btn;x;y;M or <btn;x;y;m
+            _ui_kit_parse_mouse "${seq:1}"
+            ;;
+    esac
+    # Unknown sequences ignored
+}
+
+# Internal: parse SGR mouse sequences
+_ui_kit_parse_mouse() {
+    local seq="$1"
+    local btn x y suffix
+
+    # Parse btn;x;y from sequence (strip trailing M/m)
+    IFS=';' read -r btn x y <<< "${seq%[Mm]}"
+    suffix="${seq: -1}"
+
+    # Convert to 0-indexed
+    ((x--)); ((y--))
+
+    # Check for scroll (bit 6 set)
+    if [[ $((btn & 64)) -ne 0 ]]; then
+        if [[ $((btn & 1)) -eq 0 ]]; then
+            echo "mouse:scroll up $x $y"
+        else
+            echo "mouse:scroll down $x $y"
+        fi
+        return
+    fi
+
+    # Decode button (bits 0-1)
+    local button
+    case $((btn & 3)) in
+        0) button="left" ;;
+        1) button="middle" ;;
+        2) button="right" ;;
+        *) return ;;
+    esac
+
+    # Press or release
+    if [[ "$suffix" == "M" ]]; then
+        echo "mouse:down $button $x $y"
+    else
+        echo "mouse:up $button $x $y"
+    fi
 }
