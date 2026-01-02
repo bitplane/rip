@@ -9,10 +9,10 @@
 #   └── 1/          (selection highlight - single row)
 #
 # Properties:
-#   ui.items        path to text file with items (newline-delimited)
-#   ui.selected     selected index (0-based)
-#   ui.scroll       scroll offset
-#   ui.item_count   total number of items
+#   items           path to text file with items (newline-delimited)
+#   selected        selected index (0-based)
+#   scroll          scroll offset
+#   item_count      total number of items
 #
 
 # Create a list widget
@@ -56,7 +56,7 @@ ui_widget_list_draw() {
     sel_path="$path/1"
 
     # Rebuild text buffer from items file
-    ui_kit_blit_text_file "$items" "$w" $'\e[0m' | meta_set "ui.buffer" 0 "$text_path"
+    ui_kit_blit_text_file "$items" "$w" $'\e[0m' > "$text_path/buffer"
 
     # Update text widget size and position (scrolls with offset)
     echo "$w $item_count" | ui_kit_set "$text_path" "size"
@@ -66,11 +66,11 @@ ui_widget_list_draw() {
     local sel_visible=$((selected - scroll))
     local sel_style=$'\e[100m'  # grey when unfocused
     ui_kit_has_focus "$path" && sel_style=$'\e[44m'  # blue when focused
-    sed -n "$((selected + 1))p" "$items" | ui_kit_blit_text_file /dev/stdin "$w" "$sel_style" | meta_set "ui.buffer" 0 "$sel_path"
+    sed -n "$((selected + 1))p" "$items" | ui_kit_blit_text_file /dev/stdin "$w" "$sel_style" > "$sel_path/buffer"
     echo "0 $sel_visible" | ui_kit_set "$sel_path" "pos"
 
     # Clear the container buffer (transparent)
-    ui_kit_blit_new "$w" "$h" $'\e[0m' | meta_set "ui.buffer" 0 "$path"
+    ui_kit_blit_new "$w" "$h" $'\e[0m' > "$path/buffer"
 }
 
 # Handle list events

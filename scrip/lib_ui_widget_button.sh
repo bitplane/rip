@@ -6,7 +6,7 @@
 # Usage: btn=$(ui_widget_button parent "Label" x y w h)
 #
 # Traits: button focusable
-# Properties: ui.label
+# Properties: label
 # Events: emits "press" on click/enter/space
 #
 
@@ -54,7 +54,7 @@ ui_widget_button_draw() {
             }
             if (row < h - 1) print ""
         }
-    }' | meta_set "ui.buffer" 0 "$path"
+    }' > "$path/buffer"
 }
 
 # Handle button events

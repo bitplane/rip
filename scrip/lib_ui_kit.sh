@@ -5,13 +5,12 @@
 #
 # Tree structure on disk:
 #   /tmp/ui_xxx/              # root widget
-#   ├── .meta/
-#   │   ├── ui.type/0         # space-delimited traits, e.g., "list scrollable focusable"
-#   │   ├── ui.pos/0          # "x y" relative to parent
-#   │   ├── ui.size/0         # "w h"
-#   │   ├── ui.buffer/0       # tab-delimited character buffer
-#   │   ├── ui.rendered/0     # timestamp of last render
-#   │   └── ui.focused/0      # (root only) path to currently focused widget
+#   ├── type                  # space-delimited traits, e.g., "list scrollable focusable"
+#   ├── pos                   # "x y" relative to parent
+#   ├── size                  # "w h"
+#   ├── buffer                # tab-delimited character buffer
+#   ├── rendered              # timestamp of last render
+#   ├── focused               # (root only) path to currently focused widget
 #   ├── 0/                    # first child
 #   ├── 1/                    # second child
 #   └── 2/                    # third child
@@ -36,8 +35,7 @@ declare -g _UI_KIT_ROOT=""
 ui_kit_init() {
     _UI_KIT_ROOT=$(mktemp -d)
     # Initialize focused to empty
-    mkdir -p "$_UI_KIT_ROOT/.meta/ui.focused"
-    touch "$_UI_KIT_ROOT/.meta/ui.focused/0"
+    touch "$_UI_KIT_ROOT/focused"
 }
 
 # Adds a widget to the tree
@@ -47,14 +45,14 @@ ui_kit_add() {
     local idx path
 
     # Count existing children to get next index
-    idx=$(find "$parent" -maxdepth 1 -mindepth 1 -type d ! -name '.meta' 2>/dev/null | wc -l)
+    idx=$(find "$parent" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
     path="$parent/$idx"
 
     mkdir -p "$path"
-    echo "$wtype"           | meta_set "ui.type"      0 "$path"
-    echo "$x $y"            | meta_set "ui.pos"       0 "$path"
-    echo "$w $h"            | meta_set "ui.size"      0 "$path"
-    ui_kit_blit_new "$w" "$h" | meta_set "ui.buffer"  0 "$path"
+    echo "$wtype"             > "$path/type"
+    echo "$x $y"              > "$path/pos"
+    echo "$w $h"              > "$path/size"
+    ui_kit_blit_new "$w" "$h" > "$path/buffer"
 
     echo "$path"
 }
@@ -91,7 +89,7 @@ ui_kit_reindex() {
         [[ -z "$child" ]] && continue
         mv "$child" "$temp/$idx"
         ((idx++))
-    done < <(find "$parent" -maxdepth 1 -mindepth 1 -type d ! -name '.meta' 2>/dev/null | sort -V)
+    done < <(find "$parent" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort -V)
 
     # Move back
     for child in "$temp"/*; do
@@ -105,46 +103,45 @@ ui_kit_reindex() {
 # Usage: ui_kit_children path
 ui_kit_children() {
     local path="$1"
-    find "$path" -maxdepth 1 -mindepth 1 -type d ! -name '.meta' 2>/dev/null | sort -V
+    find "$path" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort -V
 }
 
 # Get widget property
 # Usage: value=$(ui_kit_get path property)
 ui_kit_get() {
-    meta_get "ui.$2" 0 "$1"
+    cat "$1/$2" 2>/dev/null
 }
 
 # Set widget property
 # Usage: echo "value" | ui_kit_set path property
 ui_kit_set() {
-    meta_set "ui.$2" 0 "$1"
+    cat > "$1/$2"
 }
 
 # Check if widget needs redraw
-# Dirty if any ui.* metadata is newer than last render timestamp
+# Dirty if any property file is newer than last render timestamp
 # Usage: ui_kit_is_dirty path
 ui_kit_is_dirty() {
     local path="$1"
-    local rendered="$path/.meta/ui.rendered/0"
+    local rendered="$path/rendered"
 
     # Always dirty if never rendered
     [[ ! -f "$rendered" ]] && return 0
 
-    # Dirty if any metadata file is newer than last render
-    [[ -n "$(find "$path/.meta" -maxdepth 2 -name '0' -newer "$rendered" ! -path "*/ui.rendered/*" ! -path "*/ui.buffer/*" 2>/dev/null | head -1)" ]]
+    # Dirty if any property file is newer than last render
+    [[ -n "$(find "$path" -maxdepth 1 -type f -newer "$rendered" ! -name rendered ! -name buffer 2>/dev/null | head -1)" ]]
 }
 
 # Mark widget as just rendered (update timestamp)
 # Usage: ui_kit_mark_rendered path
 ui_kit_mark_rendered() {
-    mkdir -p "$1/.meta/ui.rendered"
-    touch "$1/.meta/ui.rendered/0"
+    touch "$1/rendered"
 }
 
-# Force widget to be dirty (touch a metadata file)
+# Force widget to be dirty (touch a property file)
 # Usage: ui_kit_dirty path
 ui_kit_dirty() {
-    touch "$1/.meta/ui.type/0" 2>/dev/null
+    touch "$1/type" 2>/dev/null
 }
 
 # Get widget dimensions as "w h"
@@ -178,8 +175,8 @@ ui_kit_abs_pos() {
     local files="" p="$path"
 
     # Build list of pos files from widget up to root
-    while [[ -d "$p/.meta" ]]; do
-        files="$p/.meta/ui.pos/0 $files"
+    while [[ -f "$p/pos" ]]; do
+        files="$p/pos $files"
         p=$(dirname "$p")
         [[ "$p" == "/" || "$p" == "." ]] && break
     done
@@ -218,7 +215,7 @@ ui_event() {
 
     # Bubble to parent
     parent=$(dirname "$path")
-    [[ "$parent" != "$path" && -d "$parent/.meta" ]] && ui_event "$parent" "$event" "$@"
+    [[ "$parent" != "$path" && -f "$parent/type" ]] && ui_event "$parent" "$event" "$@"
 }
 
 #
@@ -397,7 +394,7 @@ _ui_kit_build_manifest() {
     sy=$cy
 
     # Buffer file path
-    buf_file="$path/.meta/ui.buffer/0"
+    buf_file="$path/buffer"
 
     # Output manifest line for this widget
     if [[ -f "$buf_file" ]]; then
@@ -432,7 +429,7 @@ ui_kit_hit_test() {
         tac |
         awk -v x="$ax" -v y="$ay" '
             x >= $2 && x < $2+$6 && y >= $3 && y < $3+$7 {
-                sub(/\/.meta\/ui\.buffer\/0$/, "", $1)
+                sub(/\/buffer$/, "", $1)
                 print $1
             }
         '

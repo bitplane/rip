@@ -27,11 +27,10 @@ done > "$items_file"
 
 # Create root with app trait to receive bubbled events
 ui_kit_init
-mkdir -p "$_UI_KIT_ROOT/.meta"
 echo "app root" | ui_kit_set "$_UI_KIT_ROOT" "type"
 echo "0 0" | ui_kit_set "$_UI_KIT_ROOT" "pos"
 echo "$term_w $term_h" | ui_kit_set "$_UI_KIT_ROOT" "size"
-ui_kit_blit_new "$term_w" "$term_h" $'\e[40m' | meta_set "ui.buffer" 0 "$_UI_KIT_ROOT"
+ui_kit_blit_new "$term_w" "$term_h" $'\e[40m' > "$_UI_KIT_ROOT/buffer"
 
 # Create list on the left (most of the screen)
 list_w=$((term_w - 20))
