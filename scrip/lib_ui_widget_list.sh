@@ -25,11 +25,11 @@ ui_widget_list() {
     path=$(ui_kit_add "$parent" "list focusable" "$x" "$y" "$w" "$h")
 
     # Store items file path and count
-    echo "$items" | ui_kit_set "$path" "items"
+    echo "$items" > "$path/items"
     item_count=$(wc -l < "$items")
-    echo "$item_count" | ui_kit_set "$path" "item_count"
-    echo "0" | ui_kit_set "$path" "selected"
-    echo "0" | ui_kit_set "$path" "scroll"
+    echo "$item_count" > "$path/item_count"
+    echo "0" > "$path/selected"
+    echo "0" > "$path/scroll"
 
     # Create text content child (will be sized in draw)
     ui_kit_add "$path" "text" 0 0 "$w" "$item_count" > /dev/null
@@ -46,11 +46,11 @@ ui_widget_list_draw() {
     local w h items selected scroll item_count
     local text_path sel_path
 
-    read w h <<< "$(ui_kit_size "$path")"
-    items=$(ui_kit_get "$path" "items")
-    selected=$(ui_kit_get "$path" "selected")
-    scroll=$(ui_kit_get "$path" "scroll")
-    item_count=$(ui_kit_get "$path" "item_count")
+    read w h < "$path/size"
+    items=$(<"$path/items")
+    selected=$(<"$path/selected")
+    scroll=$(<"$path/scroll")
+    item_count=$(<"$path/item_count")
 
     text_path="$path/0"
     sel_path="$path/1"
@@ -59,15 +59,15 @@ ui_widget_list_draw() {
     ui_kit_blit_text_file "$items" "$w" $'\e[0m' > "$text_path/buffer"
 
     # Update text widget size and position (scrolls with offset)
-    echo "$w $item_count" | ui_kit_set "$text_path" "size"
-    echo "0 -$scroll" | ui_kit_set "$text_path" "pos"
+    echo "$w $item_count" > "$text_path/size"
+    echo "0 -$scroll" > "$text_path/pos"
 
     # Position selection highlight at visible row - extract the selected line with highlight style
     local sel_visible=$((selected - scroll))
     local sel_style=$'\e[100m'  # grey when unfocused
     ui_kit_has_focus "$path" && sel_style=$'\e[44m'  # blue when focused
     sed -n "$((selected + 1))p" "$items" | ui_kit_blit_text_file /dev/stdin "$w" "$sel_style" > "$sel_path/buffer"
-    echo "0 $sel_visible" | ui_kit_set "$sel_path" "pos"
+    echo "0 $sel_visible" > "$sel_path/pos"
 
     # Clear the container buffer (transparent)
     ui_kit_blit_new "$w" "$h" $'\e[0m' > "$path/buffer"
@@ -79,10 +79,10 @@ ui_widget_list_event() {
     shift 2
 
     local selected scroll item_count h
-    selected=$(ui_kit_get "$path" "selected")
-    scroll=$(ui_kit_get "$path" "scroll")
-    item_count=$(ui_kit_get "$path" "item_count")
-    read _ h <<< "$(ui_kit_size "$path")"
+    selected=$(<"$path/selected")
+    scroll=$(<"$path/scroll")
+    item_count=$(<"$path/item_count")
+    read _ h < "$path/size"
 
     case "$event" in
         key)
@@ -147,9 +147,9 @@ _ui_widget_list_select() {
     local path="$1" new_sel="$2"
     local item_count scroll h
 
-    item_count=$(ui_kit_get "$path" "item_count")
-    scroll=$(ui_kit_get "$path" "scroll")
-    read _ h <<< "$(ui_kit_size "$path")"
+    item_count=$(<"$path/item_count")
+    scroll=$(<"$path/scroll")
+    read _ h < "$path/size"
 
     # Clamp selection
     [[ $new_sel -lt 0 ]] && new_sel=0
@@ -163,8 +163,8 @@ _ui_widget_list_select() {
     fi
 
     # Update state
-    echo "$new_sel" | ui_kit_set "$path" "selected"
-    echo "$scroll" | ui_kit_set "$path" "scroll"
+    echo "$new_sel" > "$path/selected"
+    echo "$scroll" > "$path/scroll"
     ui_kit_dirty "$path"
 
     # Emit select event
@@ -176,8 +176,8 @@ _ui_widget_list_scroll() {
     local path="$1" new_scroll="$2"
     local item_count h
 
-    item_count=$(ui_kit_get "$path" "item_count")
-    read _ h <<< "$(ui_kit_size "$path")"
+    item_count=$(<"$path/item_count")
+    read _ h < "$path/size"
 
     # Clamp scroll
     [[ $new_scroll -lt 0 ]] && new_scroll=0
@@ -185,6 +185,6 @@ _ui_widget_list_scroll() {
     [[ $max_scroll -lt 0 ]] && max_scroll=0
     [[ $new_scroll -gt $max_scroll ]] && new_scroll=$max_scroll
 
-    echo "$new_scroll" | ui_kit_set "$path" "scroll"
+    echo "$new_scroll" > "$path/scroll"
     ui_kit_dirty "$path"
 }

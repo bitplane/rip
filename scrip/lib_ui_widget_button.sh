@@ -16,7 +16,7 @@ ui_widget_button() {
     local path
 
     path=$(ui_kit_add "$parent" "button focusable" "$x" "$y" "$w" "$h")
-    echo "$label" | ui_kit_set "$path" "label"
+    echo "$label" > "$path/label"
     echo "$path"
 }
 
@@ -25,8 +25,8 @@ ui_widget_button_draw() {
     local path="$1"
     local w h label bg fg
 
-    read w h <<< "$(ui_kit_size "$path")"
-    label=$(ui_kit_get "$path" "label")
+    read w h < "$path/size"
+    label=$(<"$path/label")
 
     if ui_kit_has_focus "$path"; then
         bg=$'\e[44m'  # blue bg

@@ -42,10 +42,10 @@ ui_kit_init() {
 # Usage: path=$(ui_kit_add parent type x y w h)
 ui_kit_add() {
     local parent="$1" wtype="$2" x="$3" y="$4" w="$5" h="$6"
-    local idx path
+    local idx=0 path
 
     # Count existing children to get next index
-    idx=$(find "$parent" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
+    while [[ -d "$parent/$idx" ]]; do ((idx++)); done
     path="$parent/$idx"
 
     mkdir -p "$path"
@@ -80,20 +80,22 @@ ui_kit_remove() {
 # Usage: ui_kit_reindex parent
 ui_kit_reindex() {
     local parent="$1"
-    local temp idx=0
+    local temp i=0 new_idx=0
 
     temp=$(mktemp -d)
 
     # Move all children to temp with new indices
-    while IFS= read -r child; do
-        [[ -z "$child" ]] && continue
-        mv "$child" "$temp/$idx"
-        ((idx++))
-    done < <(find "$parent" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort -V)
+    while [[ -d "$parent/$i" ]]; do
+        mv "$parent/$i" "$temp/$new_idx"
+        ((new_idx++))
+        ((i++))
+    done
 
     # Move back
-    for child in "$temp"/*; do
-        [[ -d "$child" ]] && mv "$child" "$parent/"
+    i=0
+    while [[ -d "$temp/$i" ]]; do
+        mv "$temp/$i" "$parent/$i"
+        ((i++))
     done
 
     rm -rf "$temp"
@@ -102,8 +104,11 @@ ui_kit_reindex() {
 # List children of a widget in order
 # Usage: ui_kit_children path
 ui_kit_children() {
-    local path="$1"
-    find "$path" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort -V
+    local path="$1" i=0
+    while [[ -d "$path/$i" ]]; do
+        echo "$path/$i"
+        ((i++))
+    done
 }
 
 # Get widget property
@@ -122,14 +127,19 @@ ui_kit_set() {
 # Dirty if any property file is newer than last render timestamp
 # Usage: ui_kit_is_dirty path
 ui_kit_is_dirty() {
-    local path="$1"
+    local path="$1" f
     local rendered="$path/rendered"
 
     # Always dirty if never rendered
     [[ ! -f "$rendered" ]] && return 0
 
     # Dirty if any property file is newer than last render
-    [[ -n "$(find "$path" -maxdepth 1 -type f -newer "$rendered" ! -name rendered ! -name buffer 2>/dev/null | head -1)" ]]
+    for f in "$path"/*; do
+        [[ -f "$f" ]] || continue
+        [[ "${f##*/}" == rendered || "${f##*/}" == buffer ]] && continue
+        [[ "$f" -nt "$rendered" ]] && return 0
+    done
+    return 1
 }
 
 # Mark widget as just rendered (update timestamp)
@@ -147,25 +157,25 @@ ui_kit_dirty() {
 # Get widget dimensions as "w h"
 # Usage: read w h <<< "$(ui_kit_size path)"
 ui_kit_size() {
-    ui_kit_get "$1" "size"
+    cat "$1/size"
 }
 
 # Get widget position as "x y"
 # Usage: read x y <<< "$(ui_kit_pos path)"
 ui_kit_pos() {
-    ui_kit_get "$1" "pos"
+    cat "$1/pos"
 }
 
 # Set widget position
 # Usage: ui_kit_set_pos path x y
 ui_kit_set_pos() {
-    echo "$2 $3" | ui_kit_set "$1" "pos"
+    echo "$2 $3" > "$1/pos"
 }
 
 # Set widget size
 # Usage: ui_kit_set_size path w h
 ui_kit_set_size() {
-    echo "$2 $3" | ui_kit_set "$1" "size"
+    echo "$2 $3" > "$1/size"
 }
 
 # Get widget absolute position (by summing positions up to root)
@@ -207,7 +217,7 @@ ui_event() {
     local wtype parent
 
     # Try each trait's handler in order
-    for wtype in $(ui_kit_get "$path" "type"); do
+    for wtype in $(<"$path/type"); do
         if type "ui_widget_${wtype}_event" &>/dev/null; then
             "ui_widget_${wtype}_event" "$path" "$event" "$@" && return 0
         fi
@@ -225,13 +235,13 @@ ui_event() {
 # Get currently focused widget path
 # Usage: focused=$(ui_kit_get_focus)
 ui_kit_get_focus() {
-    ui_kit_get "$_UI_KIT_ROOT" "focused"
+    cat "$_UI_KIT_ROOT/focused"
 }
 
 # Check if a widget has focus
 # Usage: ui_kit_has_focus path && echo "focused"
 ui_kit_has_focus() {
-    [[ "$(ui_kit_get_focus)" == "$1" ]]
+    [[ "$(<"$_UI_KIT_ROOT/focused")" == "$1" ]]
 }
 
 # Set focus to a widget (sends focus:out/focus:in events, marks both dirty)
@@ -240,7 +250,7 @@ ui_kit_set_focus() {
     local target="$1"
     local current
 
-    current=$(ui_kit_get_focus)
+    current=$(<"$_UI_KIT_ROOT/focused")
 
     # Send focus:out to current and mark dirty
     if [[ -n "$current" && -d "$current" ]]; then
@@ -249,7 +259,7 @@ ui_kit_set_focus() {
     fi
 
     # Update focus
-    echo "$target" | ui_kit_set "$_UI_KIT_ROOT" "focused"
+    echo "$target" > "$_UI_KIT_ROOT/focused"
 
     # Send focus:in to new target and mark dirty
     if [[ -n "$target" && -d "$target" ]]; then
@@ -304,7 +314,7 @@ _ui_kit_redraw_if_dirty() {
 
     if ui_kit_is_dirty "$path"; then
         # Call draw function for each trait
-        for wtype in $(ui_kit_get "$path" "type"); do
+        for wtype in $(<"$path/type"); do
             if type "ui_widget_${wtype}_draw" &>/dev/null; then
                 "ui_widget_${wtype}_draw" "$path"
             fi

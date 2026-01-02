@@ -55,7 +55,7 @@ while true; do
     case "$event" in
         key)
             [[ "$args" == "q" ]] && break
-            focused=$(ui_kit_get_focus)
+            focused=$(<"$_UI_KIT_ROOT/focused")
             [[ -n "$focused" ]] && ui_event "$focused" "key" "$args"
             ;;
         mouse:*)

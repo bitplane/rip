@@ -71,7 +71,7 @@ _ui_widget_root_find_focusables() {
     local wtype
 
     # Check if this widget is focusable
-    wtype=$(ui_kit_get "$path" "type")
+    wtype=$(<"$path/type")
     [[ "$wtype" == *focusable* ]] && echo "$path"
 
     # Recurse into children
