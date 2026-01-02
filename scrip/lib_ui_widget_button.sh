@@ -66,7 +66,7 @@ ui_widget_button_event() {
         key)
             local key="$1"
             case "$key" in
-                enter|" ")
+                enter|space)
                     ui_event "$path" "press"
                     return 0
                     ;;

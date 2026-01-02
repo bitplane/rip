@@ -469,7 +469,7 @@ ui_kit_cleanup() {
 # Usage: read -r event args <<< "$(ui_kit_read_input)"
 ui_kit_read_input() {
     local c
-    IFS= read -rsn1 c
+    IFS= read -rsn1 -d '' c
 
     case "$c" in
         $'\e') _ui_kit_read_escape ;;
@@ -501,6 +501,7 @@ ui_kit_read_input() {
         $'\x1a') echo "key ctrl+z" ;;
         $'\x7f') echo "key backspace" ;;
         '') echo "key ctrl+space" ;;
+        ' ') echo "key space" ;;
         *) echo "key $c" ;;
     esac
 }

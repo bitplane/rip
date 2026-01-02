@@ -64,7 +64,9 @@ ui_widget_list_draw() {
 
     # Position selection highlight at visible row - extract the selected line with highlight style
     local sel_visible=$((selected - scroll))
-    sed -n "$((selected + 1))p" "$items" | ui_kit_blit_text_file /dev/stdin "$w" $'\e[44m' | meta_set "ui.buffer" 0 "$sel_path"
+    local sel_style=$'\e[100m'  # grey when unfocused
+    ui_kit_has_focus "$path" && sel_style=$'\e[44m'  # blue when focused
+    sed -n "$((selected + 1))p" "$items" | ui_kit_blit_text_file /dev/stdin "$w" "$sel_style" | meta_set "ui.buffer" 0 "$sel_path"
     echo "0 $sel_visible" | ui_kit_set "$sel_path" "pos"
 
     # Clear the container buffer (transparent)
