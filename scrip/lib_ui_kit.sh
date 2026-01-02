@@ -9,10 +9,9 @@
 #   │   ├── ui.type/0         # space-delimited traits, e.g., "list scrollable focusable"
 #   │   ├── ui.pos/0          # "x y" relative to parent
 #   │   ├── ui.size/0         # "w h"
-#   │   ├── ui.clip/0         # "x y w h" visible region
 #   │   ├── ui.buffer/0       # tab-delimited character buffer
 #   │   ├── ui.rendered/0     # timestamp of last render
-#   │   └── ui.focused/0      # path to focused child widget
+#   │   └── ui.focused/0      # (root only) path to currently focused widget
 #   ├── 0/                    # first child
 #   ├── 1/                    # second child
 #   └── 2/                    # third child
@@ -52,7 +51,6 @@ ui_kit_add() {
     echo "$wtype"           | meta_set "ui.type"      0 "$path"
     echo "$x $y"            | meta_set "ui.pos"       0 "$path"
     echo "$w $h"            | meta_set "ui.size"      0 "$path"
-    echo "0 0 $w $h"        | meta_set "ui.clip"      0 "$path"
     ui_kit_blit_new "$w" "$h" | meta_set "ui.buffer"  0 "$path"
 
     echo "$path"
@@ -281,17 +279,17 @@ ui_kit_walk() {
 }
 
 # Render the tree - redraw dirty widgets, composite all buffers in one awk call
-# Usage: ui_kit_render root
+# Usage: ui_kit_render
 ui_kit_render() {
-    local root="$1" manifest script_dir
+    local manifest script_dir
     manifest=$(mktemp)
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
     # First pass: redraw any dirty widgets to their buffer files
-    ui_kit_walk "$root" _ui_kit_redraw_if_dirty
+    ui_kit_walk "$_UI_KIT_ROOT" _ui_kit_redraw_if_dirty
 
     # Second pass: build manifest of all buffers with absolute positions
-    _ui_kit_build_manifest "$root" "" > "$manifest"
+    _ui_kit_build_manifest "$_UI_KIT_ROOT" "" > "$manifest"
 
     # Composite and display (strip tabs for terminal output)
     awk -f "$script_dir/buffer_blit.awk" < "$manifest" | tr -d '\t'
@@ -411,9 +409,10 @@ _ui_kit_build_manifest() {
 }
 
 # Destroy the entire widget tree
-# Usage: ui_kit_destroy root
+# Usage: ui_kit_destroy
 ui_kit_destroy() {
-    rm -rf "$1"
+    rm -rf "$_UI_KIT_ROOT"
+    _UI_KIT_ROOT=""
 }
 
 #
@@ -422,11 +421,11 @@ ui_kit_destroy() {
 
 # Find the deepest widget at absolute coordinates (respecting clip regions)
 # Returns the widget path, or empty if no hit
-# Usage: widget=$(ui_kit_hit_test root ax ay)
+# Usage: widget=$(ui_kit_hit_test ax ay)
 ui_kit_hit_test() {
-    local root="$1" ax="$2" ay="$3"
+    local ax="$1" ay="$2"
 
-    _ui_kit_build_manifest "$root" "" "" |
+    _ui_kit_build_manifest "$_UI_KIT_ROOT" "" "" |
         tac |
         awk -v x="$ax" -v y="$ay" '
             x >= $2 && x < $2+$6 && y >= $3 && y < $3+$7 {
