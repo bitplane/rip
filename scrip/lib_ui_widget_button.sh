@@ -74,7 +74,11 @@ ui_widget_button_event() {
             ;;
         mouse:down)
             local btn="$1"
-            [[ "$btn" == "left" ]] && ui_event "$path" "press" && return 0
+            if [[ "$btn" == "left" ]]; then
+                ui_kit_set_focus "$path"
+                ui_event "$path" "press"
+                return 0
+            fi
             ;;
     esac
     return 1
