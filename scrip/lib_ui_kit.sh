@@ -33,10 +33,9 @@
 declare -g _UI_KIT_ROOT=""
 
 # Create the root widget (usually a screen)
-# Usage: ui_kit_init  (sets $_UI_KIT_ROOT)
+# Usage: ui_kit_init  (then use $_UI_KIT_ROOT)
 ui_kit_init() {
     _UI_KIT_ROOT=$(mktemp -d)
-    echo "$_UI_KIT_ROOT"
 }
 
 # Adds a widget to the tree
@@ -542,12 +541,14 @@ _ui_kit_parse_csi() {
     local seq="$1"
 
     case "$seq" in
+        # Basic keys
         A) echo "key up" ;;
         B) echo "key down" ;;
         C) echo "key right" ;;
         D) echo "key left" ;;
         H) echo "key home" ;;
         F) echo "key end" ;;
+        Z) echo "key shift+tab" ;;
         3~) echo "key delete" ;;
         5~) echo "key pageup" ;;
         6~) echo "key pagedown" ;;
@@ -559,12 +560,48 @@ _ui_kit_parse_csi() {
         21~) echo "key f10" ;;
         23~) echo "key f11" ;;
         24~) echo "key f12" ;;
+        # Modified keys: 1;{mod}{key}
+        1\;[2-8][ABCDHF])
+            _ui_kit_parse_modified_key "$seq"
+            ;;
         '<'*)
             # SGR mouse: <btn;x;y;M or <btn;x;y;m
             _ui_kit_parse_mouse "${seq:1}"
             ;;
     esac
     # Unknown sequences ignored
+}
+
+# Internal: parse modified keys like 1;2A (shift+up)
+# Modifier codes: 2=shift, 3=alt, 4=shift+alt, 5=ctrl, 6=ctrl+shift, 7=ctrl+alt, 8=ctrl+shift+alt
+_ui_kit_parse_modified_key() {
+    local seq="$1"
+    local mod="${seq:2:1}"
+    local key="${seq:3:1}"
+    local prefix="" keyname=""
+
+    # Build modifier prefix
+    case "$mod" in
+        2) prefix="shift+" ;;
+        3) prefix="alt+" ;;
+        4) prefix="shift+alt+" ;;
+        5) prefix="ctrl+" ;;
+        6) prefix="ctrl+shift+" ;;
+        7) prefix="ctrl+alt+" ;;
+        8) prefix="ctrl+shift+alt+" ;;
+    esac
+
+    # Decode key
+    case "$key" in
+        A) keyname="up" ;;
+        B) keyname="down" ;;
+        C) keyname="right" ;;
+        D) keyname="left" ;;
+        H) keyname="home" ;;
+        F) keyname="end" ;;
+    esac
+
+    [[ -n "$keyname" ]] && echo "key ${prefix}${keyname}"
 }
 
 # Internal: parse SGR mouse sequences
