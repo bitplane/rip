@@ -23,16 +23,9 @@ ui_widget_root_event() {
 
     case "$event" in
         key)
-            local key="$1"
-            case "$key" in
-                tab)
-                    _ui_widget_root_cycle_focus 1
-                    return 0
-                    ;;
-                shift+tab)
-                    _ui_widget_root_cycle_focus -1
-                    return 0
-                    ;;
+            case "$1" in
+                tab) _ui_widget_root_cycle_focus 1; return 0 ;;
+                shift+tab) _ui_widget_root_cycle_focus -1; return 0 ;;
             esac
             ;;
     esac

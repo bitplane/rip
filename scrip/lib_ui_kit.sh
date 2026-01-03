@@ -29,6 +29,8 @@
 
 # Global root widget path
 declare -g _UI_KIT_ROOT=""
+# Set to 1 to exit the main loop
+declare -g _UI_KIT_QUIT=0
 
 # Create the root widget (usually a screen)
 # Usage: ui_kit_init [w h]  (defaults to terminal size, use $_UI_KIT_ROOT)
@@ -655,4 +657,52 @@ _ui_kit_parse_mouse() {
     else
         echo "mouse:up $button $x $y"
     fi
+}
+
+#
+# Main loop
+#
+
+# Run the UI main loop
+# Sets up terminal, renders, dispatches events
+# Exits when _UI_KIT_QUIT is set to 1
+# Usage: ui_kit_run
+ui_kit_run() {
+    local input event args focused target
+
+    ui_kit_init_term
+    trap 'ui_kit_cleanup' EXIT
+
+    _UI_KIT_QUIT=0
+    while [[ $_UI_KIT_QUIT -eq 0 ]]; do
+        printf '\e[H'
+        ui_kit_render
+
+        input=$(ui_kit_read_input)
+        read -r event args <<< "$input"
+
+        case "$event" in
+            key)
+                # Dispatch to focused widget, bubbles to root if unhandled
+                focused=$(<"$_UI_KIT_ROOT/focused")
+                if [[ -n "$focused" ]]; then
+                    ui_event "$focused" "key" $args
+                else
+                    ui_event "$_UI_KIT_ROOT" "key" $args
+                fi
+                ;;
+            mouse:*)
+                # Hit test and dispatch to target
+                read -r _ x y <<< "$args"
+                target=$(ui_kit_hit_test "$x" "$y" | head -1)
+                [[ -n "$target" ]] && ui_event "$target" "$event" $args
+                ;;
+        esac
+    done
+}
+
+# Signal the main loop to exit
+# Usage: ui_kit_quit
+ui_kit_quit() {
+    _UI_KIT_QUIT=1
 }
