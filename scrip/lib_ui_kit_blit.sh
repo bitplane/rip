@@ -17,17 +17,17 @@ ui_kit_blit_new() {
 
 # Convert a text file to a buffer (one line per row)
 # Usage: ui_kit_blit_text_file file width [style]
-# Note: Uses bash to handle UTF-8 characters properly
+# Uses grep -o for UTF-8 safe character splitting
 ui_kit_blit_text_file() {
-    local file="$1" width="$2" style="${3:-\033[0m}"
-    local line i char
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        for ((i = 0; i < width; i++)); do
-            char="${line:i:1}"
-            [[ -z "$char" ]] && char=" "
-            printf "%s%s" "$style$char" $'\t'
-        done
-        # Remove trailing tab and add newline
-        printf "\b \n"
-    done < "$file"
+    local file="$1" width="$2" style="${3:-}"
+    [[ -z "$style" ]] && style=$'\e[0m'
+    local RS=$'\x1E'  # ASCII record separator as line marker
+
+    # Pad lines to width, split UTF-8 chars, add style, join with tabs
+    awk -v w="$width" '{printf "%-*s\n", w, $0}' "$file" |
+        sed "s/$/$RS/" |
+        grep -o ".\|$RS" |
+        sed "/^$RS\$/!s|^|$style|" |
+        paste -sd'	' |
+        sed "s/$RS	/\n/g; s/$RS\$//"
 }
