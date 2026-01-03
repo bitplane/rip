@@ -60,6 +60,9 @@ _dip_handle_key() {
         e)
             [[ $_DIP_VIEW == "files" ]] && _dip_edit_entry
             ;;
+        right)
+            _dip_select
+            ;;
         backspace|left)
             _dip_back
             ;;
@@ -90,12 +93,17 @@ _dip_back() {
     esac
 }
 
+# Get raw entry name at index (stored separately from formatted display)
+_dip_get_entry() {
+    sed -n "$((${1:-0} + 1))p" "$_DIP_LIST/entries"
+}
+
 # Select current item
 _dip_select() {
     local selected
     selected=$(<"$_DIP_LIST/selected")
     local item
-    item=$(sed -n "$((selected + 1))p" "$_DIP_LIST/contents")
+    item=$(_dip_get_entry "$selected")
 
     case $_DIP_VIEW in
         browse)
@@ -126,10 +134,9 @@ _dip_select() {
 _dip_add() {
     case $_DIP_VIEW in
         browse)
-            local selected
+            local selected item
             selected=$(<"$_DIP_LIST/selected")
-            local item
-            item=$(sed -n "$((selected + 1))p" "$_DIP_LIST/contents")
+            item=$(_dip_get_entry "$selected")
             [[ "$item" == ".." ]] && return
             mkdir -p "$_DIP_DIR/$item/.meta"
             _dip_refresh
@@ -181,10 +188,9 @@ _dip_add_entry() {
 
 # Edit current entry
 _dip_edit_entry() {
-    local selected
+    local selected file
     selected=$(<"$_DIP_LIST/selected")
-    local file
-    file=$(sed -n "$((selected + 1))p" "$_DIP_LIST/contents")
+    file=$(_dip_get_entry "$selected")
     local path="$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$file"
 
     _dip_run_editor "$path"
@@ -208,10 +214,9 @@ _dip_run_editor() {
 
 # Delete with confirmation
 _dip_delete() {
-    local selected
+    local selected item
     selected=$(<"$_DIP_LIST/selected")
-    local item
-    item=$(sed -n "$((selected + 1))p" "$_DIP_LIST/contents")
+    item=$(_dip_get_entry "$selected")
 
     [[ -z "$item" || "$item" == ".." ]] && return
 
@@ -274,32 +279,103 @@ _dip_do_confirm() {
     _dip_refresh
 }
 
+# Format a browse entry with emoji and tag info
+_dip_format_browse_entry() {
+    local entry="$1"
+    local path="$_DIP_DIR/$entry"
+    local emoji=" "
+    local suffix=""
+
+    [[ "$entry" == ".." ]] && { echo "⬆ .."; return; }
+
+    # Get emoji for entry type
+    emoji=$(ui_emoji "$path" 2>/dev/null || echo "📁")
+
+    # Add tag info if has metadata
+    if [[ -d "$path/.meta" ]]; then
+        local tags
+        tags=$(find "$path/.meta" -maxdepth 1 -mindepth 1 -type d -printf "%f " 2>/dev/null | head -c 40)
+        suffix=" [${tags:-(no tags)}]"
+    fi
+
+    echo "$emoji $entry$suffix"
+}
+
+# Format a metadata tag entry with count and preview
+_dip_format_tag_entry() {
+    local tag="$1"
+    local path="$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
+    local count preview
+
+    count=$(find "$path" -maxdepth 1 -type f 2>/dev/null | wc -l)
+    preview=""
+    if [[ $count -gt 0 ]]; then
+        preview=$(head -c 40 "$path/0" 2>/dev/null | tr '\n' ' ')
+        [[ ${#preview} -ge 40 ]] && preview="${preview:0:37}..."
+    fi
+
+    echo "$tag ($count): $preview"
+}
+
+# Format a file entry with content preview
+_dip_format_file_entry() {
+    local file="$1"
+    local path="$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$file"
+    local preview
+
+    preview=$(head -c 50 "$path" 2>/dev/null | tr '\n' ' ')
+    [[ ${#preview} -ge 50 ]] && preview="${preview:0:47}..."
+
+    echo "$file: $preview"
+}
+
 # Refresh the list contents
 _dip_refresh() {
-    local contents=""
+    local entries="" contents="" entry
 
     case $_DIP_VIEW in
         browse)
             # Add parent if not at base
-            [[ "$_DIP_DIR" != "$BASE_DIR" ]] && contents=".."$'\n'
+            [[ "$_DIP_DIR" != "$BASE_DIR" ]] && entries=".."$'\n'
             # Add directories
-            contents+=$(find "$_DIP_DIR" -maxdepth 1 -mindepth 1 -type d -not -path "*/\.*" -printf "%f\n" 2>/dev/null | sort)
+            entries+=$(find "$_DIP_DIR" -maxdepth 1 -mindepth 1 -type d -not -path "*/\.*" -printf "%f\n" 2>/dev/null | sort)
+
+            # Format each entry
+            while IFS= read -r entry; do
+                [[ -z "$entry" ]] && continue
+                contents+=$(_dip_format_browse_entry "$entry")$'\n'
+            done <<< "$entries"
+
             echo "Directory: $_DIP_DIR" > "$_DIP_HEADER/text"
             echo "↑↓:nav  →/Enter:select  a:add meta  d:delete  q:quit" > "$_DIP_STATUS/text"
             ;;
         metadata)
-            contents=$(meta_tags "$_DIP_DIR/$_DIP_ITEM" 2>/dev/null | sort)
+            entries=$(meta_tags "$_DIP_DIR/$_DIP_ITEM" 2>/dev/null | sort)
+
+            while IFS= read -r entry; do
+                [[ -z "$entry" ]] && continue
+                contents+=$(_dip_format_tag_entry "$entry")$'\n'
+            done <<< "$entries"
+
             echo "Metadata: $_DIP_ITEM" > "$_DIP_HEADER/text"
             echo "↑↓:nav  →/Enter:select  ←:back  a:add tag  d:delete  q:quit" > "$_DIP_STATUS/text"
             ;;
         files)
-            contents=$(find "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG" -maxdepth 1 -mindepth 1 -type f -printf "%f\n" 2>/dev/null | sort -n)
+            entries=$(find "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG" -maxdepth 1 -mindepth 1 -type f -printf "%f\n" 2>/dev/null | sort -n)
+
+            while IFS= read -r entry; do
+                [[ -z "$entry" ]] && continue
+                contents+=$(_dip_format_file_entry "$entry")$'\n'
+            done <<< "$entries"
+
             echo "Tag: $_DIP_TAG" > "$_DIP_HEADER/text"
             echo "↑↓:nav  Enter/e:edit  ←:back  a:add entry  d:delete  q:quit" > "$_DIP_STATUS/text"
             ;;
     esac
 
-    echo "$contents" > "$_DIP_LIST/contents"
+    # Store raw entries (for selection) and formatted contents (for display)
+    printf "%s" "$entries" > "$_DIP_LIST/entries"
+    printf "%s" "$contents" > "$_DIP_LIST/contents"
     echo "0" > "$_DIP_LIST/selected"
     echo "0" > "$_DIP_LIST/scroll"
     ui_kit_dirty "$_DIP_HEADER"

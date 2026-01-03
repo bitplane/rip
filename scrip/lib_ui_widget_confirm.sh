@@ -90,6 +90,24 @@ ui_widget_confirm_event() {
                     ui_event "$path" "cancel"
                     return 0
                     ;;
+                left)
+                    ui_kit_set_focus "$path/0"  # Yes button
+                    return 0
+                    ;;
+                right)
+                    ui_kit_set_focus "$path/1"  # No button
+                    return 0
+                    ;;
+                enter|space)
+                    # Activate focused button
+                    local focused=$(<"$_UI_KIT_ROOT/focused")
+                    if [[ "$focused" == "$path/0" ]]; then
+                        ui_event "$path" "confirm"
+                    else
+                        ui_event "$path" "cancel"
+                    fi
+                    return 0
+                    ;;
             esac
             ;;
         press)
