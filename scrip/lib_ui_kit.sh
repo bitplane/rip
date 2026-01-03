@@ -669,6 +669,7 @@ _ui_kit_parse_mouse() {
 # Usage: ui_kit_run
 ui_kit_run() {
     local input event args focused target
+    local max_events=50
 
     ui_kit_init_term
     trap 'ui_kit_cleanup' EXIT
@@ -678,27 +679,47 @@ ui_kit_run() {
         printf '\e[H'
         ui_kit_render
 
-        input=$(ui_kit_read_input)
-        read -r event args <<< "$input"
+        # Process first event (blocking)
+        _ui_kit_dispatch "$(ui_kit_read_input)"
 
-        case "$event" in
-            key)
-                # Dispatch to focused widget, bubbles to root if unhandled
-                focused=$(<"$_UI_KIT_ROOT/focused")
-                if [[ -n "$focused" ]]; then
-                    ui_event "$focused" "key" $args
-                else
-                    ui_event "$_UI_KIT_ROOT" "key" $args
-                fi
-                ;;
-            mouse:*)
-                # Hit test and dispatch to target
-                read -r _ x y <<< "$args"
-                target=$(ui_kit_hit_test "$x" "$y" | head -1)
-                [[ -n "$target" ]] && ui_event "$target" "$event" $args
-                ;;
-        esac
+        # Drain any queued events (non-blocking, up to max)
+        local count=0
+        while [[ $count -lt $max_events ]] && input=$(_ui_kit_read_input_nonblock); do
+            _ui_kit_dispatch "$input"
+            ((count++))
+        done
     done
+}
+
+# Internal: dispatch a single input event
+_ui_kit_dispatch() {
+    local input="$1" event args focused target
+
+    read -r event args <<< "$input"
+
+    case "$event" in
+        key)
+            focused=$(<"$_UI_KIT_ROOT/focused")
+            if [[ -n "$focused" ]]; then
+                ui_event "$focused" "key" $args
+            else
+                ui_event "$_UI_KIT_ROOT" "key" $args
+            fi
+            ;;
+        mouse:*)
+            read -r _ x y <<< "$args"
+            target=$(ui_kit_hit_test "$x" "$y" | head -1)
+            [[ -n "$target" ]] && ui_event "$target" "$event" $args
+            ;;
+    esac
+}
+
+# Internal: non-blocking input read (returns 1 if no input available)
+_ui_kit_read_input_nonblock() {
+    # Check if input available (doesn't read, just checks)
+    read -t 0 || return 1
+    # Input available, use normal read
+    ui_kit_read_input
 }
 
 # Signal the main loop to exit

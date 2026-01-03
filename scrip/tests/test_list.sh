@@ -24,7 +24,7 @@ echo "app root" > "$_UI_KIT_ROOT/type"
 # Create list on the left (most of the screen)
 read term_w term_h < "$_UI_KIT_ROOT/size"
 list_w=$((term_w - 20))
-list=$(for i in $(seq 1 50); do printf "Item %03d - Test entry\n" "$i"; done |
+list=$(for i in $(seq 1 1000); do printf "Item %03d - Test entry\n" "$i"; done |
        ui_widget_list "$_UI_KIT_ROOT" 1 1 "$list_w" $((term_h - 2)))
 
 # Create exit button on the right
