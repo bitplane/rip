@@ -41,37 +41,25 @@ ui_widget_confirm_draw() {
     read w h < "$path/size"
     message=$(<"$path/message")
 
-    # Draw box background with border and centered message
-    awk -v w="$w" -v h="$h" -v msg="$message" '
-    BEGIN {
-        bg = "\033[100m"  # gray background
-        fg = "\033[97m"   # white text
-        border = "\033[90m"  # dark gray border
-        reset = "\033[0m"
+    local bg=$'\e[100m'  # gray background
+    local fg=$'\e[97m'   # white text
 
-        msg_x = int((w - length(msg)) / 2)
-        if (msg_x < 1) msg_x = 1
+    local msg_pad=$(( (w - 2 - ${#message}) / 2 ))
+    ((msg_pad < 0)) && msg_pad=0
 
-        for (row = 0; row < h; row++) {
-            for (col = 0; col < w; col++) {
-                # Border on edges
-                if (row == 0 || row == h-1 || col == 0 || col == w-1) {
-                    printf "%s ", border
-                }
-                # Message on row 1
-                else if (row == 1 && col >= msg_x && col < msg_x + length(msg)) {
-                    c = substr(msg, col - msg_x + 1, 1)
-                    printf "%s%s%s", bg, fg, c
-                }
-                # Background
-                else {
-                    printf "%s ", bg
-                }
-                if (col < w - 1) printf "\t"
-            }
-            if (row < h - 1) print ""
-        }
-    }' > "$path/buffer"
+    # Build lines for the dialog box
+    for ((row = 0; row < h; row++)); do
+        if ((row == 0 || row == h - 1)); then
+            # Top/bottom border
+            printf "%*s\n" "$w" ""
+        elif ((row == 1)); then
+            # Message row: padding + message + padding
+            printf " %*s%s%*s \n" "$msg_pad" "" "$message" "$((w - 2 - msg_pad - ${#message}))" ""
+        else
+            # Interior row
+            printf " %*s \n" "$((w - 2))" ""
+        fi
+    done | ui_kit_blit_text_file /dev/stdin "$w" "${bg}${fg}" > "$path/buffer"
 }
 
 # Handle dialog events

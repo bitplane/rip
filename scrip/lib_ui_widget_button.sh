@@ -23,7 +23,7 @@ ui_widget_button() {
 # Draw the button
 ui_widget_button_draw() {
     local path="$1"
-    local w h label bg fg
+    local w h label bg fg style
 
     read w h < "$path/size"
     label=$(<"$path/label")
@@ -34,27 +34,19 @@ ui_widget_button_draw() {
         bg=$'\e[100m' # gray bg
     fi
     fg=$'\e[97m'  # white text
+    style="${bg}${fg}"
 
-    # Build buffer with centered text
-    awk -v w="$w" -v h="$h" -v label="$label" -v bg="$bg" -v fg="$fg" '
-    BEGIN {
-        len = length(label)
-        px = int((w - len) / 2)
-        py = int(h / 2)
+    # Build lines: blank rows, then centered label row, then blank rows
+    local label_row=$((h / 2))
+    local pad=$(( (w - ${#label}) / 2 ))
 
-        for (row = 0; row < h; row++) {
-            for (col = 0; col < w; col++) {
-                if (row == py && col >= px && col < px + len) {
-                    c = substr(label, col - px + 1, 1)
-                    printf "%s%s%s", bg, fg, c
-                } else {
-                    printf "%s ", bg
-                }
-                if (col < w - 1) printf "\t"
-            }
-            if (row < h - 1) print ""
-        }
-    }' > "$path/buffer"
+    for ((row = 0; row < h; row++)); do
+        if ((row == label_row)); then
+            printf "%*s%s%*s\n" "$pad" "" "$label" "$((w - pad - ${#label}))" ""
+        else
+            printf "%*s\n" "$w" ""
+        fi
+    done | ui_kit_blit_text_file /dev/stdin "$w" "$style" > "$path/buffer"
 }
 
 # Handle button events
