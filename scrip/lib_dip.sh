@@ -1,518 +1,336 @@
 #!/usr/bin/env bash
 # dip.sh - Minimal metadata editor for archive.org items
-# Part of the "rip" tool suite
+# Part of the "rip" tool suite - UI Kit version
 
-# Find the base directory
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-# Source libraries
-source "$BASE_DIR/scrip/libs.sh"
-source "$BASE_DIR/scrip/lib_ui_widgets.sh"
-
-# Global vars
-_DIP_DIR="$BASE_DIR"
-_DIP_CURSOR=0
+# Global state
+_DIP_DIR=""
 _DIP_VIEW="browse"
 _DIP_ITEM=""
 _DIP_TAG=""
-_DIP_ENTRIES=()
+_DIP_HEADER=""
+_DIP_LIST=""
+_DIP_STATUS=""
+_DIP_CONFIRM=""
+_DIP_CONFIRM_ACTION=""
+_DIP_CONFIRM_TARGET=""
 
-# Initialize terminal
-_dip_in() {
-  # Terminal setup
-  tput smcup
-  tput civis
-  stty -echo raw
-  
-  _DIP_CACHE_DIR="$(mktmp)"
-  
-  shell_trap "_dip_out $_DIP_CACHE_DIR"
+# App event handler - receives bubbled events
+ui_widget_dip_event() {
+    local path="$1" event="$2"
+    shift 2
+
+    case "$event" in
+        key)
+            _dip_handle_key "$1"
+            return 0
+            ;;
+        activate)
+            # List item activated (enter pressed)
+            _dip_select
+            return 0
+            ;;
+        confirm)
+            # Yes pressed in confirm dialog
+            _dip_do_confirm
+            return 0
+            ;;
+        cancel)
+            # No pressed in confirm dialog
+            _dip_hide_confirm
+            return 0
+            ;;
+    esac
+    return 1
 }
 
-# Cleanup and exit
-_dip_out() {
-  
-  tput rmcup
-  tput cnorm
-  stty sane
-  #echo -e '\e[?1049l'
+# Handle key presses
+_dip_handle_key() {
+    local key="$1"
 
-  # Clean up cache
-  rm -rf "$1" 2>/dev/null
-  
-  exit 0
+    # If confirm dialog is visible, let it handle keys
+    [[ -d "$_DIP_CONFIRM" ]] && return 1
+
+    case "$key" in
+        a|+)
+            _dip_add
+            ;;
+        d)
+            _dip_delete
+            ;;
+        e)
+            [[ $_DIP_VIEW == "files" ]] && _dip_edit_entry
+            ;;
+        backspace|left)
+            _dip_back
+            ;;
+        q)
+            ui_kit_quit
+            ;;
+    esac
 }
 
-# List directory entries
-_dip_list_entries() {
-  # Reset entries array
-  _DIP_ENTRIES=()
-
-  # Add parent directory if not at BASE_DIR
-  [[ "$_DIP_DIR" != "$BASE_DIR" ]] && _DIP_ENTRIES+=("..")
-  
-  # Add directories
-  while IFS= read -r entry; do
-    [[ -z "$entry" ]] && continue
-    _DIP_ENTRIES+=("$entry")
-  done < <(find "$_DIP_DIR" -maxdepth 1 -mindepth 1 -type d -not -path "*/\.*" -printf "%f\n" | sort)
-  
-  # Adjust cursor position if needed
-  [[ $_DIP_CURSOR -ge ${#_DIP_ENTRIES[@]} ]] && _DIP_CURSOR=$((${#_DIP_ENTRIES[@]} - 1))
-  [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
-}
-
-# List metadata tags
-_dip_list_tags() {
-    # Reset entries array
-    _DIP_ENTRIES=()
-  
-    # Add tags
-    while IFS= read -r tag; do
-        [[ -z "$tag" ]] && continue
-        _DIP_ENTRIES+=("$tag")
-    done < <(meta_tags "$_DIP_DIR"/"$_DIP_ITEM" | sort)
-  
-    # Adjust cursor position if needed
-    [[ $_DIP_CURSOR -ge ${#_DIP_ENTRIES[@]} ]] && _DIP_CURSOR=$((${#_DIP_ENTRIES[@]} - 1))
-    [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
-}
-
-# List tag files
-_dip_list_files() {
-  # Reset entries array
-  _DIP_ENTRIES=()
-  
-  # Add files
-  while IFS= read -r file; do
-    [[ -z "$file" ]] && continue
-    _DIP_ENTRIES+=("$file")
-  done < <(find "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG" -maxdepth 1 -mindepth 1 -type f -printf "%f\n" 2>/dev/null | sort -n)
-  
-  # Adjust cursor position if needed
-  [[ $_DIP_CURSOR -ge ${#_DIP_ENTRIES[@]} ]] && _DIP_CURSOR=$((${#_DIP_ENTRIES[@]} - 1))
-  [[ $_DIP_CURSOR -lt 0 ]] && _DIP_CURSOR=0
-}
-
-# Render callback for list entries
-# This is called by ui_list for each visible entry
-_dip_render_entry() {
-  local selected=$1
-  local idx=$2
-  local entry="$3"
-
-  local symbol=" "
-  local text=""
-  local details=""
-
-  # Build the row content based on current view
-  case $_DIP_VIEW in
-    browse)
-      [[ "$entry" != ".." ]] && symbol=$(ui_emoji "$_DIP_DIR/$entry")
-
-      if [[ "$entry" != ".." && -d "$_DIP_DIR/$entry/.meta" ]]; then
-        local tags=$(find "$_DIP_DIR/$entry/.meta" -maxdepth 1 -mindepth 1 -type d -printf "%f " 2>/dev/null | head -c 40)
-        text="[$entry]"
-        details="${tags:-(no tags)}"
-      else
-        text="$entry"
-      fi
-      ;;
-    metadata)
-      local count=$(find "$_DIP_DIR/$_DIP_ITEM/.meta/$entry" -type f 2>/dev/null | wc -l)
-      text="$entry ($count):"
-
-      if [[ $count -gt 0 ]]; then
-        local preview=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$entry/0" 2>/dev/null | head -n 1 | cut -c 1-40)
-        [[ ${#preview} -gt 39 ]] && preview="${preview:0:37}..."
-        details="$preview"
-      else
-        details="(empty)"
-      fi
-      ;;
-    files)
-      text="$entry:"
-      local content=$(cat "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$entry" 2>/dev/null | head -n 1 | cut -c 1-50)
-      [[ ${#content} -gt 49 ]] && content="${content:0:47}..."
-      details="$content"
-      ;;
-  esac
-
-  # Render the row
-  if [[ $selected -eq 1 ]]; then
-    tput rev; tput bold
-    printf " %s %s " "$symbol" "$text"
-
-    if [[ -n "$details" ]]; then
-      tput sgr0; tput rev; tput setaf 6
-      printf "%s" "$details"
-    fi
-
-    tput sgr0
-  else
-    printf " %s %s " "$symbol" "$text"
-
-    if [[ -n "$details" ]]; then
-      tput setaf 6
-      printf "%s" "$details"
-      tput sgr0
-    fi
-  fi
-
-  printf "\r\n"
-}
-
-# Get status bar text for current view
-_dip_status_bar() {
-  case $_DIP_VIEW in
-    browse)
-      echo "Arrows: navigate | Return: select | a: add meta | d: delete meta | q: quit"
-      ;;
-    metadata)
-      echo "Arrows: navigate | Return: select | a: add tag | d: delete tag | q: quit"
-      ;;
-    files)
-      echo "Arrows: navigate | Return/e: edit | a: add entry | d: delete | q: quit"
-      ;;
-  esac
-}
-
-# User prompt with y/n
-_dip_prompt() {
-  local message="$1" default="${2:-N}"
-  
-  tput cup $(($(tput lines) - 1)) 0
-  tput el
-  echo -n "$message [$default] "
-  
-  local answer
-  read -r -n 1 answer
-  [[ -z "$answer" ]] && answer="$default"
-  
-  case "$answer" in
-    [yY]) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-# Draw screen using widget library
-_dip_draw() {
-  local term_height=$(tput lines)
-  local visible_rows=$((term_height - 4))
-
-  # Clear screen
-  clear
-
-  # Draw header using ui_text
-  local header_text=""
-  case $_DIP_VIEW in
-    browse)
-      header_text="Directory: $_DIP_DIR"
-      ;;
-    metadata)
-      header_text="Metadata for: $_DIP_ITEM"
-      ;;
-    files)
-      header_text="Tag: $_DIP_TAG in $_DIP_ITEM"
-      ;;
-  esac
-  ui_text "$header_text" 1 0 ""
-
-  # Draw list using ui_list widget
-  ui_list _DIP_ENTRIES $_DIP_CURSOR $visible_rows _dip_render_entry
-
-  # Draw status bar
-  ui_line $((term_height - 2))
-  ui_text "$(_dip_status_bar)" 1 0 ""
-}
-
-# Add metadata to item
-_dip_add_meta() {
-  local item="${_DIP_ENTRIES[$_DIP_CURSOR]}"
-  
-  # Skip special entries
-  [[ "$item" == ".." ]] && return
-  
-  # Create metadata dir
-  mkdir -p "$_DIP_DIR/$item/.meta"
-  meta_touch "$_DIP_DIR/$item/.meta"
-}
-
-# Add tag with prompt
-_dip_add_tag() {
-  # Return to normal terminal mode for input
-  tput cnorm
-  stty echo -raw
-  
-  # Prompt for tag name
-  tput cup $(($(tput lines) - 1)) 0
-  tput el
-  echo -n "Enter tag name: "
-  read -r tag
-  
-  # If not empty, create tag and add first entry
-  if [[ -n "$tag" ]]; then
-    mkdir -p "$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
-    _dip_add_entry "$tag"
-    _dip_list_tags
-  fi
-  
-  # Return to raw mode
-  stty -echo raw
-  tput civis
-}
-
-# Add entry to tag
-_dip_add_entry() {
-  local tag="${1:-$_DIP_TAG}"
-  local path="$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
-  local count=$(find "$path" -type f 2>/dev/null | wc -l)
-  local temp=$(mktemp)
-  
-  # Get editor (git editor preferred)
-  local editor=${VISUAL:-${EDITOR:-vi}}
-  local git_editor=$(git config --get core.editor 2>/dev/null)
-  [[ -n "$git_editor" ]] && editor="$git_editor"
-  
-  # Return to normal terminal for editor
-  tput rmcup
-  tput cnorm
-  stty echo -raw
-  
-  # Edit file
-  $editor "$temp"
-  
-  # Save if not empty
-  if [[ -s "$temp" ]]; then
-    cat "$temp" > "$path/$count"
-    meta_touch "$path"
-  fi
-  
-  # Cleanup
-  rm "$temp"
-  
-  # Return to TUI mode
-  tput smcup
-  stty -echo raw
-  tput civis
-  
-  # Refresh list
-  _dip_list_files
-}
-
-# Edit tag entry
-_dip_edit_entry() {
-  local file="${_DIP_ENTRIES[$_DIP_CURSOR]}"
-  local path="$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$file"
-  
-  # Get editor
-  local editor=${VISUAL:-${EDITOR:-vi}}
-  local git_editor=$(git config --get core.editor 2>/dev/null)
-  [[ -n "$git_editor" ]] && editor="$git_editor"
-  
-  # Return to normal terminal for editor
-  tput rmcup
-  tput cnorm
-  stty echo -raw
-  
-  # Edit file
-  $editor "$path"
-  
-  # Update mtimes to invalidate any caches
-  meta_touch "$path"
-  
-  # Return to TUI mode
-  tput smcup
-  stty -echo raw
-  tput civis
-}
-
-# Delete tag entry with confirmation
-_dip_delete_entry() {
-  local file="${_DIP_ENTRIES[$_DIP_CURSOR]}"
-  
-  if _dip_prompt "Delete entry $file? [y/N]" "N"; then
-    meta_rm "$_DIP_TAG" "$file" "$_DIP_DIR/$_DIP_ITEM" 
-    _dip_list_files
-  fi
-}
-
-# Delete metadata tag with confirmation
-_dip_delete_tag() {
-  local tag="${_DIP_ENTRIES[$_DIP_CURSOR]}"
-  
-  if _dip_prompt "Delete tag $tag and ALL entries? [y/N]" "N"; then
-    meta_rm "$tag" "*" "$_DIP_DIR/$_DIP_ITEM"
-    _dip_list_tags
-  fi
-}
-
-# Delete all metadata with confirmation
-_dip_delete_meta() {
-  local item="${_DIP_ENTRIES[$_DIP_CURSOR]}"
-  
-  # Skip special entries
-  [[ "$item" == ".." ]] && return
-  
-
-  if _dip_prompt "Delete ALL metadata for $item? [y/N]" "N"; then
-    meta_rm "*" "*" "$_DIP_DIR/$item"
-    _dip_list_entries
-  fi
-}
-
-# Handle keypresses
-_dip_key() {
-  local key
-  read -r -n 1 key
-  
-  # Handle arrow keys (escape sequences)
-  if [[ "$key" == $'\x1b' ]]; then
-    read -r -n 2 -t 0.1 rest
-    key="$key$rest"
-  fi
-  
-  case "$key" in
-    $'\x1b[A') # Up
-      [[ $_DIP_CURSOR -gt 0 ]] && ((_DIP_CURSOR--))
-      ;;
-    $'\x1b[B') # Down
-      [[ $_DIP_CURSOR -lt $((${#_DIP_ENTRIES[@]} - 1)) ]] && ((_DIP_CURSOR++))
-      ;;
-    $'\x1b[D'|$'\x7f') # Left or backspace
-      case $_DIP_VIEW in
+# Navigate back
+_dip_back() {
+    case $_DIP_VIEW in
         browse)
-          # Go up a directory if not at BASE_DIR
-          if [[ "$_DIP_DIR" != "$BASE_DIR" ]]; then
-            local old_dir="$_DIP_DIR"
-            _DIP_DIR=$(dirname "$_DIP_DIR")
-            _dip_list_entries
-            
-            # Try to position cursor on directory we came from
-            local old_base=$(basename "$old_dir")
-            for ((i=0; i<${#_DIP_ENTRIES[@]}; i++)); do
-              if [[ "${_DIP_ENTRIES[$i]}" == "$old_base" ]]; then
-                _DIP_CURSOR=$i
-                break
-              fi
-            done
-          fi
-          ;;
+            # Go up a directory if not at base
+            [[ "$_DIP_DIR" != "$BASE_DIR" ]] && {
+                _DIP_DIR=$(dirname "$_DIP_DIR")
+                _dip_refresh
+            }
+            ;;
         metadata)
-          # Back to browse mode
-          _DIP_VIEW="browse"
-          _DIP_CURSOR=0
-          _dip_list_entries
-          ;;
+            _DIP_VIEW="browse"
+            _dip_refresh
+            ;;
         files)
-          # Back to metadata mode
-          _DIP_VIEW="metadata"
-          _DIP_CURSOR=0
-          _dip_list_tags
-          ;;
-      esac
-      ;;
-    $'\x1b[C'|$'\n') # Right or enter
-      case $_DIP_VIEW in
-        browse)
-          [[ ${#_DIP_ENTRIES[@]} -eq 0 ]] && return
-          
-          local item="${_DIP_ENTRIES[$_DIP_CURSOR]}"
-          if [[ "$item" == ".." ]]; then
-            # Go up a directory
-            local old_dir="$_DIP_DIR"
-            _DIP_DIR=$(dirname "$_DIP_DIR")
-            _dip_list_entries
-            
-            # Try to position cursor on directory we came from
-            local old_base=$(basename "$old_dir")
-            for ((i=0; i<${#_DIP_ENTRIES[@]}; i++)); do
-              if [[ "${_DIP_ENTRIES[$i]}" == "$old_base" ]]; then
-                _DIP_CURSOR=$i
-                break
-              fi
-            done
-          elif [[ -d "$_DIP_DIR/$item/.meta" ]]; then
-            # Enter metadata mode
-            _DIP_ITEM="$item"
             _DIP_VIEW="metadata"
-            _DIP_CURSOR=0
-            _dip_list_tags
-          else
-            # Enter directory
-            _DIP_DIR="$_DIP_DIR/$item"
-            _DIP_CURSOR=0
-            _dip_list_entries
-          fi
-          ;;
-        metadata)
-          [[ ${#_DIP_ENTRIES[@]} -eq 0 ]] && return
-          
-          # Enter tag files mode
-          _DIP_TAG="${_DIP_ENTRIES[$_DIP_CURSOR]}"
-          _DIP_VIEW="files"
-          _DIP_CURSOR=0
-          _dip_list_files
-          ;;
-        files)
-          # Edit the selected file
-          [[ ${#_DIP_ENTRIES[@]} -eq 0 ]] && return
-          _dip_edit_entry
-          ;;
-      esac
-      ;;
-    a|+) # Add
-      case $_DIP_VIEW in
+            _dip_refresh
+            ;;
+    esac
+}
+
+# Select current item
+_dip_select() {
+    local selected
+    selected=$(<"$_DIP_LIST/selected")
+    local item
+    item=$(sed -n "$((selected + 1))p" "$_DIP_LIST/contents")
+
+    case $_DIP_VIEW in
         browse)
-          _dip_add_meta
-          ;;
+            if [[ "$item" == ".." ]]; then
+                _DIP_DIR=$(dirname "$_DIP_DIR")
+                _dip_refresh
+            elif [[ -d "$_DIP_DIR/$item/.meta" ]]; then
+                _DIP_ITEM="$item"
+                _DIP_VIEW="metadata"
+                _dip_refresh
+            else
+                _DIP_DIR="$_DIP_DIR/$item"
+                _dip_refresh
+            fi
+            ;;
         metadata)
-          _dip_add_tag
-          ;;
+            _DIP_TAG="$item"
+            _DIP_VIEW="files"
+            _dip_refresh
+            ;;
         files)
-          _dip_add_entry
-          ;;
-      esac
-      ;;
-    d) # Delete
-      case $_DIP_VIEW in
+            _dip_edit_entry
+            ;;
+    esac
+}
+
+# Add item based on current view
+_dip_add() {
+    case $_DIP_VIEW in
         browse)
-          _dip_delete_meta
-          ;;
+            local selected
+            selected=$(<"$_DIP_LIST/selected")
+            local item
+            item=$(sed -n "$((selected + 1))p" "$_DIP_LIST/contents")
+            [[ "$item" == ".." ]] && return
+            mkdir -p "$_DIP_DIR/$item/.meta"
+            _dip_refresh
+            ;;
         metadata)
-          [[ ${#_DIP_ENTRIES[@]} -eq 0 ]] && return
-          _dip_delete_tag
-          ;;
+            _dip_add_tag
+            ;;
         files)
-          [[ ${#_DIP_ENTRIES[@]} -eq 0 ]] && return
-          _dip_delete_entry
-          ;;
-      esac
-      ;;
-    e) # Edit
-      [[ $_DIP_VIEW == "files" && ${#_DIP_ENTRIES[@]} -gt 0 ]] && {
-        _dip_edit_entry
-      }
-      ;;
-    q|$'\x1b') # Quit
-      _dip_out
-      ;;
-  esac
+            _dip_add_entry
+            ;;
+    esac
+}
+
+# Add tag with editor
+_dip_add_tag() {
+    local temp
+    temp=$(mktemp)
+    echo "# Enter tag name on first line" > "$temp"
+
+    _dip_run_editor "$temp"
+
+    local tag
+    tag=$(head -n 1 "$temp" | grep -v '^#')
+    rm "$temp"
+
+    [[ -n "$tag" ]] && {
+        mkdir -p "$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
+        _dip_refresh
+    }
+}
+
+# Add entry to current tag
+_dip_add_entry() {
+    local path="$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG"
+    local count
+    count=$(find "$path" -maxdepth 1 -type f 2>/dev/null | wc -l)
+    local temp
+    temp=$(mktemp)
+
+    _dip_run_editor "$temp"
+
+    [[ -s "$temp" ]] && {
+        cat "$temp" > "$path/$count"
+        meta_touch "$path"
+    }
+    rm "$temp"
+    _dip_refresh
+}
+
+# Edit current entry
+_dip_edit_entry() {
+    local selected
+    selected=$(<"$_DIP_LIST/selected")
+    local file
+    file=$(sed -n "$((selected + 1))p" "$_DIP_LIST/contents")
+    local path="$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG/$file"
+
+    _dip_run_editor "$path"
+    meta_touch "$path"
+    _dip_refresh
+}
+
+# Run editor, handling terminal state
+_dip_run_editor() {
+    local file="$1"
+    local editor=${VISUAL:-${EDITOR:-vi}}
+    local git_editor
+    git_editor=$(git config --get core.editor 2>/dev/null)
+    [[ -n "$git_editor" ]] && editor="$git_editor"
+
+    # Restore terminal for editor
+    ui_kit_cleanup
+    $editor "$file"
+    ui_kit_init_term
+}
+
+# Delete with confirmation
+_dip_delete() {
+    local selected
+    selected=$(<"$_DIP_LIST/selected")
+    local item
+    item=$(sed -n "$((selected + 1))p" "$_DIP_LIST/contents")
+
+    [[ -z "$item" || "$item" == ".." ]] && return
+
+    local message
+    case $_DIP_VIEW in
+        browse)
+            message="Delete ALL metadata for $item?"
+            _DIP_CONFIRM_ACTION="meta"
+            ;;
+        metadata)
+            message="Delete tag $item and ALL entries?"
+            _DIP_CONFIRM_ACTION="tag"
+            ;;
+        files)
+            message="Delete entry $item?"
+            _DIP_CONFIRM_ACTION="entry"
+            ;;
+    esac
+    _DIP_CONFIRM_TARGET="$item"
+
+    _dip_show_confirm "$message"
+}
+
+# Show confirm dialog
+_dip_show_confirm() {
+    local message="$1"
+    local w h x y
+    read w h < "$_UI_KIT_ROOT/size"
+    local dw=44 dh=5
+    x=$(( (w - dw) / 2 ))
+    y=$(( (h - dh) / 2 ))
+
+    _DIP_CONFIRM=$(ui_widget_confirm "$_UI_KIT_ROOT" "$message" "$x" "$y" "$dw")
+}
+
+# Hide confirm dialog
+_dip_hide_confirm() {
+    [[ -d "$_DIP_CONFIRM" ]] && {
+        rm -rf "$_DIP_CONFIRM"
+        ui_kit_set_focus "$_DIP_LIST"
+        ui_kit_dirty "$_UI_KIT_ROOT"
+    }
+    _DIP_CONFIRM=""
+}
+
+# Execute confirmed action
+_dip_do_confirm() {
+    case $_DIP_CONFIRM_ACTION in
+        meta)
+            meta_rm "*" "*" "$_DIP_DIR/$_DIP_CONFIRM_TARGET"
+            ;;
+        tag)
+            meta_rm "$_DIP_CONFIRM_TARGET" "*" "$_DIP_DIR/$_DIP_ITEM"
+            ;;
+        entry)
+            meta_rm "$_DIP_TAG" "$_DIP_CONFIRM_TARGET" "$_DIP_DIR/$_DIP_ITEM"
+            ;;
+    esac
+    _dip_hide_confirm
+    _dip_refresh
+}
+
+# Refresh the list contents
+_dip_refresh() {
+    local contents=""
+
+    case $_DIP_VIEW in
+        browse)
+            # Add parent if not at base
+            [[ "$_DIP_DIR" != "$BASE_DIR" ]] && contents=".."$'\n'
+            # Add directories
+            contents+=$(find "$_DIP_DIR" -maxdepth 1 -mindepth 1 -type d -not -path "*/\.*" -printf "%f\n" 2>/dev/null | sort)
+            echo "Directory: $_DIP_DIR" > "$_DIP_HEADER/text"
+            echo "↑↓:nav  →/Enter:select  a:add meta  d:delete  q:quit" > "$_DIP_STATUS/text"
+            ;;
+        metadata)
+            contents=$(meta_tags "$_DIP_DIR/$_DIP_ITEM" 2>/dev/null | sort)
+            echo "Metadata: $_DIP_ITEM" > "$_DIP_HEADER/text"
+            echo "↑↓:nav  →/Enter:select  ←:back  a:add tag  d:delete  q:quit" > "$_DIP_STATUS/text"
+            ;;
+        files)
+            contents=$(find "$_DIP_DIR/$_DIP_ITEM/.meta/$_DIP_TAG" -maxdepth 1 -mindepth 1 -type f -printf "%f\n" 2>/dev/null | sort -n)
+            echo "Tag: $_DIP_TAG" > "$_DIP_HEADER/text"
+            echo "↑↓:nav  Enter/e:edit  ←:back  a:add entry  d:delete  q:quit" > "$_DIP_STATUS/text"
+            ;;
+    esac
+
+    echo "$contents" > "$_DIP_LIST/contents"
+    echo "0" > "$_DIP_LIST/selected"
+    echo "0" > "$_DIP_LIST/scroll"
+    ui_kit_dirty "$_DIP_HEADER"
+    ui_kit_dirty "$_DIP_STATUS"
+    ui_kit_dirty "$_DIP_LIST"
 }
 
 # Main function
 dip_main() {
-  _dip_in
-  _dip_list_entries
-  
-  # Main loop
-  while true; do
-    _dip_draw
-    _dip_key
-  done
-}
+    _DIP_DIR="${1:-$BASE_DIR}"
 
-# Run if executed directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  dip_main
-fi
+    # Create UI
+    ui_kit_init
+    echo "dip root" > "$_UI_KIT_ROOT/type"
+
+    local w h
+    read w h < "$_UI_KIT_ROOT/size"
+
+    # Header label
+    _DIP_HEADER=$(ui_widget_label "$_UI_KIT_ROOT" "" 0 0 "$w" $'\e[44m\e[97m')
+
+    # Main list
+    _DIP_LIST=$(echo "" | ui_widget_list "$_UI_KIT_ROOT" 0 1 "$w" $((h - 2)))
+
+    # Status bar
+    _DIP_STATUS=$(ui_widget_label "$_UI_KIT_ROOT" "" 0 $((h - 1)) "$w" $'\e[100m\e[97m')
+
+    # Initial content
+    _dip_refresh
+    ui_kit_set_focus "$_DIP_LIST"
+
+    # Run
+    ui_kit_run
+}
