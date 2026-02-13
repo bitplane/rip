@@ -47,37 +47,6 @@
 - [ ] trace mode using -x
 - [ ] add colours to stderr
 
-## ui
-
-- [ ] status bar for header and footer
-- [ ] list file view
-- [ ] make bash/awk ui library
-  - [ ] test toolkit
-  - [ ] low level
-    - [x] buffers
-    - [x] compositor / cropping
-    - [ ] scene graph
-    - [ ] render loop
-  - [ ] widgets
-    - [ ] list
-    - [ ] table
-    - [ ] split panel
-    - [ ] header/footer bar
-    - [ ] image viewer
-  - [ ] input
-    - [ ] generic text
-    - [ ] question y/n
-    - [ ] mouse hits
-
-## dip
-
-- [ ] `rm` bot code spam
-- [ ] drop most globals, use `cd` for `pwd`
-- [ ] features
-  - [ ] use fs to run a shell in an archive
-    - [ ] use`qemount`
-  - [ ] allow renaming items
-
 ## upload
 
 - [ ] rename to `ship_ia`
