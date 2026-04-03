@@ -10,7 +10,7 @@ queue_wait() {
   local work
   log_info "🔍 watching $(basename "$dir") for work" >&2
   while true; do
-    work=$(find "$dir" -mindepth 1 -maxdepth 1 -type d | sort | head -n1)
+    work=$(find "$dir" -mindepth 1 -maxdepth 1 -type d | sort 2>/dev/null | head -n1)
     if [[ -n "$work" ]]; then
       log_info "📂 found $work" >&2
       echo "$work"
