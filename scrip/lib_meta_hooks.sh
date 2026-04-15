@@ -4,29 +4,15 @@
 # Hooks for metadata changes
 #
 
-# When the ddrescue log is added, it adds the integrity field
+# When the ddrescue log is added, derive integrity from the captured
+# ddrescue.output (its live stats). The mapfile alone can't tell a short-read
+# bail from a clean rip — both end up as a single '+' region.
 meta_hook_ddrescue.log() {
-    (
-    awk '
-    function hex2dec(h,  n, i, c, v) {
-        h = tolower(h); sub(/^0x/, "", h); n = 0
-        for (i = 1; i <= length(h); i++) {
-            c = substr(h, i, 1)
-            v = index("0123456789abcdef", c) - 1
-            n = n * 16 + v
-        }
-        return n
-    }
-    /^0x/ {
-        size   = hex2dec($2)
-        total  += size
-        if ($3 == "+") good += size
-    }
-    END {
-        if (total == 0) { print 0; exit }
-        percent = int((good * 100) / total)
-        print percent
-    }' || echo 0
-    ) | meta_set ddrescue.integrity "$2" "$3"
+    meta_get ddrescue.output "" "$3" \
+        | grep 'pct rescued:' \
+        | tail -n1 \
+        | grep -oE '[0-9]+' \
+        | head -n1 \
+        | meta_set ddrescue.integrity "$2" "$3"
 }
 

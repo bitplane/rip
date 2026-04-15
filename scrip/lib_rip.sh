@@ -22,19 +22,27 @@ rip_ddrescue() {
     
     log_info "🔄 reading disk"
     local sector_size=$(drive_sector_size "$device")
-    if ! timeout 1h ddrescue -n -a "$sector_size" -b "$sector_size" "$device" "$iso_name" "$log_name"; then
-      log_error "⏰ ddrescue either timed out or exited with an error" 
+    local out_name="${log_name}.out"
+    timeout 1h ddrescue -n -a "$sector_size" -b "$sector_size" "$device" "$iso_name" "$log_name" 2>&1 | tee "$out_name"
+    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+      log_error "⏰ ddrescue either timed out or exited with an error"
     fi
-  
+
+    # Store ddrescue's stdout first; the ddrescue.log hook reads it to derive integrity.
+    if ! cat "$out_name" | meta_add ddrescue.output; then
+        log_error "Failed to store ddrescue output"
+    fi
+    rm -f "$out_name"
+
     if cat "$log_name" | meta_add ddrescue.log; then
         rm -f "${log_name}"* || log_error "Couldn't delete ${log_name}"
     else
         log_error "Failed to store ddrescue log, keeping file: $log_name"
     fi
 
-    local recovered=0
-    # hook will have populated this
+    local recovered
     recovered=$(meta_get ddrescue.integrity)
+    recovered=${recovered:-0}
 
     if [ "$recovered" -gt 95 ]; then
       log_info  "✅ Recovered ${recovered}% (over 95%)"
