@@ -75,7 +75,7 @@ fs_extract_icon() {
       *.exe|*.dll)
         tmpdir=$(mktemp -d)
 
-        if ! wrestool -x --type=14 "$icon_index" "$icon_path" > "$tmpdir/temp.ico" 2>/dev/null; then
+        if ! wrestool -x --type=14 $icon_index "$icon_path" > "$tmpdir/temp.ico" 2>/dev/null; then
           log_error "wrestool failed to extract icon from $icon_path"
           rm -rf "$tmpdir" || log_warn "Failed to clean up temp directory: $tmpdir"
           return 1
