@@ -28,21 +28,19 @@ rip_ddrescue() {
       log_error "⏰ ddrescue either timed out or exited with an error"
     fi
 
-    # Store ddrescue's stdout first; the ddrescue.log hook reads it to derive integrity.
-    if ! cat "$out_name" | meta_add ddrescue.output; then
-        log_error "Failed to store ddrescue output"
-    fi
+    # Extract the rescue percentage from ddrescue's progress output
+    local recovered
+    recovered=$(grep -oP 'pct rescued:\s*\K[0-9]+' "$out_name" | tail -n1)
+    recovered=${recovered:-0}
     rm -f "$out_name"
+
+    echo "$recovered" | meta_set ddrescue.integrity 0
 
     if cat "$log_name" | meta_add ddrescue.log; then
         rm -f "${log_name}"* || log_error "Couldn't delete ${log_name}"
     else
         log_error "Failed to store ddrescue log, keeping file: $log_name"
     fi
-
-    local recovered
-    recovered=$(meta_get ddrescue.integrity)
-    recovered=${recovered:-0}
 
     if [ "$recovered" -gt 95 ]; then
       log_info  "✅ Recovered ${recovered}% (over 95%)"

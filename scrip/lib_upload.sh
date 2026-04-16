@@ -40,6 +40,7 @@ upload_directory() {
 
     # Upload any remaining files
     if [[ ${#batch[@]} -gt 0 ]]; then
+      log_info "ia args: $(printf '%s\n' ia upload -c --keep-directories --retries=100 --sleep=120 "${meta_args[@]}" "$item_name" -- "${batch[@]}" | wc -c) bytes, ${#meta_args[@]} meta args, ${#batch[@]} files"
       ia upload -c --keep-directories --retries=100 --sleep=120 "${meta_args[@]}" "$item_name" -- "${batch[@]}" || return 1
     fi
   ) || return 1
