@@ -48,20 +48,31 @@ generate_img_metadata() {
   return 0
 }
 
+find_image_file() {
+  local work="$1"
+  local name="$2"
+  local ext
+
+  for ext in iso img bin; do
+    if [[ -f "$work/$name.$ext" ]]; then
+      echo "$work/$name.$ext"
+      return 0
+    fi
+  done
+
+  find "$work" -maxdepth 1 -type f \( -name '*.iso' -o -name '*.img' -o -name '*.bin' \) \
+    | sort \
+    | head -n1
+}
+
 while true; do
   work=$(queue_wait "$BASE_DIR/2.snip")
   name=$(basename "$work")
   log_info "👀 Extracting metadata for $name"
 
   # Find the image file (could be .iso, .img, or .bin)
-  image_file=""
-  if [ -f "$work/$name.iso" ]; then
-    image_file="$work/$name.iso"
-  elif [ -f "$work/$name.img" ]; then
-    image_file="$work/$name.img"
-  elif [ -f "$work/$name.bin" ]; then
-    image_file="$work/$name.bin"
-  else
+  image_file=$(find_image_file "$work" "$name")
+  if [[ -z "$image_file" ]]; then
     log_error "❌ No image file found for $name"
     queue_fail "$work"
     continue
