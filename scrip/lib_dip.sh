@@ -162,10 +162,15 @@ _dip_add_tag() {
     tag=$(head -n 1 "$temp" | grep -v '^#')
     rm "$temp"
 
-    [[ -n "$tag" ]] && {
-        mkdir -p "$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
-        _dip_refresh
+    [[ -z "$tag" ]] && return
+    meta_validate_tag "$tag" || {
+        echo "Invalid tag name" > "$_DIP_STATUS/text"
+        ui_kit_dirty "$_DIP_STATUS"
+        return
     }
+
+    mkdir -p "$_DIP_DIR/$_DIP_ITEM/.meta/$tag"
+    _dip_refresh
 }
 
 # Add entry to current tag

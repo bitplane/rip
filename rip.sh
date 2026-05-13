@@ -8,7 +8,7 @@ deps() {
   for cmd in ia tmux \
              fuseiso isoinfo \
              ddrescue eject \
-             xz tar tree \
+             tar tree \
              icotool wrestool magick \
              mcopy mdir \
              pigz file archivemount genisoimage \

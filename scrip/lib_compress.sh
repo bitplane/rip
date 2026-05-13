@@ -14,7 +14,7 @@ compress_bins() {
         log_error "❌ failed to remove original file "$(basename "$file")""
         failed=1
     }
-  done < <(find "$work" -type f \( -name '*.iso' -o -name '*.tar' \))
+  done < <(find "$work" -type f \( -name '*.iso' -o -name '*.img' -o -name '*.bin' -o -name '*.tar' \))
   
   return $failed
 }

@@ -10,9 +10,9 @@ bash scripts for batch ripping computer CDs/DVDs/floppy disks and uploading to a
 It'll grumble at startup if you don't have the following:
 
 ```bash
-sudo apt install tmux gddrescue tree xz-utils imagemagick \
+sudo apt install tmux gddrescue tree imagemagick \
                  eject genisoimage archivemount icoutils \
-                 imagemagick mtools fuseiso p7zip-full udftools
+                 imagemagick mtools fuseiso p7zip-full udftools pigz
 pip install "internetarchive~=5.3"
 ```
 
@@ -38,7 +38,7 @@ stage of the pipeline:
    default.
 2. `snip` - collects metadata, like the file date of the youngest file, the file
    tree 
-3. `zip` - compresses the image with `xz`.
+3. `zip` - compresses the image with `pigz`.
 4. `ship` - uploads it to archive.org
 5. `sip` - is what you do when you're finished 🍻
 
@@ -88,4 +88,3 @@ echo "historical" | meta_add subject "./met-office-climate-data"
 WTFPL with one additional clause:
 
 1. Don't blame me.
-

@@ -121,6 +121,7 @@ fs_run_in() {
 
   local tmp_mount
   local cleanup_type="fuse"
+  local status=0
   
   # Detect format and choose appropriate temp storage
   if command -v udfinfo &>/dev/null && udfinfo "$path" &>/dev/null 2>&1; then
@@ -132,33 +133,63 @@ fs_run_in() {
   fi
   
   (
-    set -e
-    shell_trap "_fs_run_in_cleanup $tmp_mount \$cleanup_type"
+    local cleaned=0
+    _fs_run_in_cleanup_once() {
+      if [[ $cleaned -eq 0 ]]; then
+        cleaned=1
+        _fs_run_in_cleanup "$tmp_mount" "$cleanup_type"
+      fi
+    }
+    trap _fs_run_in_cleanup_once EXIT INT TERM HUP
 
     case "$path" in
-      *.iso | *.img | /dev/* )
+      *.iso | *.img | *.bin | /dev/* )
         # Try fuseiso first (for ISO 9660)
         if fuseiso "$path" "$tmp_mount" 2>/dev/null; then
           cleanup_type="fuse"
         elif command -v udfinfo &>/dev/null && udfinfo "$path" &>/dev/null 2>&1; then
           # UDF detected, use 7z extraction
           log_info "🔀 Detected UDF format, using 7z extraction"
-          7z x -y -o"$tmp_mount" "$path" >/dev/null 2>&1
           cleanup_type="dir"
+          7z x -y -o"$tmp_mount" "$path" >/dev/null 2>&1
+          status=$?
+          if [[ $status -ne 0 ]]; then
+            _fs_run_in_cleanup_once
+            return "$status"
+          fi
         else
           # Fall back to original fuseiso with error
-          fuseiso "$path" "$tmp_mount"
           cleanup_type="fuse"
+          fuseiso "$path" "$tmp_mount"
+          status=$?
+          if [[ $status -ne 0 ]]; then
+            _fs_run_in_cleanup_once
+            return "$status"
+          fi
         fi
         ;;
       *)
-        archivemount "$path" "$tmp_mount"
         cleanup_type="fuse"
+        archivemount "$path" "$tmp_mount"
+        status=$?
+        if [[ $status -ne 0 ]]; then
+          _fs_run_in_cleanup_once
+          return "$status"
+        fi
         ;;
     esac
 
     pushd "$tmp_mount" > /dev/null
+    status=$?
+    if [[ $status -ne 0 ]]; then
+      _fs_run_in_cleanup_once
+      return "$status"
+    fi
+
     "$@"
+    status=$?
+    _fs_run_in_cleanup_once
+    return "$status"
   )
 }
 
@@ -195,4 +226,3 @@ fs_insensitive() {
     done
     echo "$base"
 }
-

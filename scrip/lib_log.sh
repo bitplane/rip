@@ -13,6 +13,11 @@ log_info() {
   log "[I]: $message"
 }
 
+log_warn() {
+  local message="$1"
+  log "[W]: $message" >&2
+}
+
 log_error() {
   local message="$1"
   log "[E]: $message" >&2

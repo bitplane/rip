@@ -53,12 +53,14 @@ while true; do
   name=$(basename "$work")
   log_info "👀 Extracting metadata for $name"
 
-  # Find the image file (could be .iso or .img)
+  # Find the image file (could be .iso, .img, or .bin)
   image_file=""
   if [ -f "$work/$name.iso" ]; then
     image_file="$work/$name.iso"
   elif [ -f "$work/$name.img" ]; then
     image_file="$work/$name.img"
+  elif [ -f "$work/$name.bin" ]; then
+    image_file="$work/$name.bin"
   else
     log_error "❌ No image file found for $name"
     queue_fail "$work"

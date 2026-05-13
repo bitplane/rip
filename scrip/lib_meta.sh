@@ -14,12 +14,18 @@ meta_add() {
     meta_set "$tag" "$(meta_count "$tag" "$path")" "$path"
 }
 
+meta_validate_tag() {
+    local tag="$1"
+    [[ "$tag" =~ ^[A-Za-z0-9._-]+$ ]]
+}
+
 # Set metadata at a specific tag index
 # Usage: echo "value" | meta_set "tag" ["idx"] ["path"]
 meta_set() {
     local tag="$1" idx="$2" path="${3:-.}"
     # dir must exist, index must be numeric
     path="$(fs_path "$path")" || return 1
+    meta_validate_tag "$tag" || return 1
     [[ -z "$idx" ]] && { count=$(meta_count "$tag" "$path"); idx=$((count - 1)); }
     [[ "$idx" =~ ^[0-9]+$ ]] || return 1
 
