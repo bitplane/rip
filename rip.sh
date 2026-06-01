@@ -21,7 +21,7 @@ deps() {
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo "❌ Missing required tools: ${missing[*]}" >&2
     echo "Please install the missing dependencies:" >&2
-    echo "  sudo apt install tmux fuseiso gddrescue tree mtools pigz genisoimage archivemount icoutils p7zip-full udftools" >&2
+    echo "  sudo apt install tmux fuseiso gddrescue tree mtools pigz genisoimage archivemount icoutils p7zip-full udftools eject imagemagick file" >&2
     echo "  pip install internetarchive~=5.3" >&2
     return 1
   fi

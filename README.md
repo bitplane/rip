@@ -10,9 +10,9 @@ bash scripts for batch ripping computer CDs/DVDs/floppy disks and uploading to a
 It'll grumble at startup if you don't have the following:
 
 ```bash
-sudo apt install tmux gddrescue tree imagemagick \
+sudo apt install tmux gddrescue tree imagemagick file \
                  eject genisoimage archivemount icoutils \
-                 imagemagick mtools fuseiso p7zip-full udftools pigz
+                 mtools fuseiso p7zip-full udftools pigz
 pip install "internetarchive~=5.3"
 ```
 
@@ -33,12 +33,14 @@ Either run `./scrip/n.stage.sh` as background tasks, or run it in tmux:
 This will create a session with a general monitor pane, plus outputs from each
 stage of the pipeline:
 
-1. `rip` - taking a CD, DVD, or floppy disk from the drive and reading it with `ddrescue`. The
-   log files are included. `rip-all` launches one process per drive, which is
-   default.
+1. `rip` - taking a CD, DVD, floppy disk, or other removable disk from the drive
+   and reading it with `ddrescue`. It writes `.iso`, `.img`, or `.bin` depending
+   on the media type. The log files are included. `rip-all` launches one process
+   per drive, which is default.
 2. `snip` - collects metadata, like the file date of the youngest file, the file
-   tree 
-3. `zip` - compresses the image with `pigz`.
+   tree. Damaged FAT images may still continue with partial metadata, because
+   the recovered image and ddrescue logs can still help with reconstruction.
+3. `zip` - compresses image/archive files with `pigz`.
 4. `ship` - uploads it to archive.org
 5. `sip` - is what you do when you're finished 🍻
 
@@ -70,6 +72,7 @@ in `lib_upload.sh` like so:
 echo "weather"    | meta_add subject "./met-office-climate-data"
 echo "historical" | meta_add subject "./met-office-climate-data"
 ```
+Tag names are restricted to letters, numbers, `.`, `_`, and `-`.
 
 ## 🔗 `PROJECT.LNK`
 
