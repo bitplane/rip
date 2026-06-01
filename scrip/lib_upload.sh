@@ -1,6 +1,7 @@
 upload_directory() {
   local work="$1"
   local item_name
+  local file
   item_name="$(basename "$work")"
 
   (

@@ -23,6 +23,7 @@ meta_validate_tag() {
 # Usage: echo "value" | meta_set "tag" ["idx"] ["path"]
 meta_set() {
     local tag="$1" idx="$2" path="${3:-.}"
+    local count i
     # dir must exist, index must be numeric
     path="$(fs_path "$path")" || return 1
     meta_validate_tag "$tag" || return 1
@@ -52,6 +53,7 @@ meta_set() {
 # Usage: meta_fix [path]
 meta_fix() {
     local path="${1:-.}"
+    local file i
     path="$(fs_path "$path")"
   
     # Skip if directory doesn't exist
@@ -106,6 +108,7 @@ meta_touch() {
 meta_get_args() {
     local item="$1"
     local -n out_array=$2  # Nameref to caller's array
+    local tag idx
 
     # Reset the array
     out_array=()
@@ -127,6 +130,7 @@ meta_get_args() {
 meta_get() {
     local tag="${1:-*}" idx="${2:-*}" path="${3:-.}"
     local base="$path/.meta"
+    local count tagdir file
     # default to latest value
     [[ -z "$idx" ]] && { count=$(meta_count "$tag" "$path"); idx=$((count - 1)); }
 
@@ -151,6 +155,7 @@ meta_tags() {
 meta_rm() {
   local tag="${1:-*}" idx="${2:-*}" path="${3:-.}"
   local basedir="$path/.meta"
+  local tagdir file
 
   ( # subshell to contain nullglob
     shopt -s nullglob

@@ -283,6 +283,7 @@ ui_kit_set_focus() {
 # Callback receives: path depth
 ui_kit_walk() {
     local root="$1" callback="$2" depth="${3:-0}"
+    local child
 
     # Call callback for this node
     "$callback" "$root" "$depth"

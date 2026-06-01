@@ -37,7 +37,7 @@ ui_widget_root_event() {
 _ui_widget_root_cycle_focus() {
     local dir="$1"
     local focusables=()
-    local current idx
+    local current idx widget i
 
     # Gather all focusable widgets
     while IFS= read -r widget; do
@@ -61,7 +61,7 @@ _ui_widget_root_cycle_focus() {
 # Internal: find all focusable widgets (depth-first order)
 _ui_widget_root_find_focusables() {
     local path="$1"
-    local wtype
+    local wtype child
 
     # Check if this widget is focusable
     wtype=$(<"$path/type")

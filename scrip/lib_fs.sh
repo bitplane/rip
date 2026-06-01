@@ -219,6 +219,7 @@ fs_insensitive() {
     local path="$1"
     local base="${2:-.}"
     local match
+    local -a parts
     IFS='/' read -ra parts <<< "$path"
     for part in "${parts[@]}"; do
         match=$(find "$base" -mindepth 1 -maxdepth 1 -iname "$part" -print -quit)

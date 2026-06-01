@@ -48,6 +48,8 @@ drive_eject() {
 }
 
 drive_list() {
+  local drive dev
+
   # List CD/DVD drives
   for drive in $(lsblk -d -o NAME,TYPE,MODEL | grep rom | cut -d " " -f 1); do
     echo /dev/"$drive"

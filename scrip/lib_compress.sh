@@ -1,6 +1,7 @@
 compress_bins() {
   local work="$1"
   local failed=0
+  local file
   
   while IFS= read -r file; do
     local dest="${file}.gz"
