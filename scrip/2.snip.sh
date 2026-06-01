@@ -29,8 +29,10 @@ generate_img_metadata() {
   (
     trap 'rm -rf "$tmp_mount"' EXIT INT TERM HUP
 
-    # Extract all files to temp directory with preserved timestamps
-    MTOOLS_SKIP_CHECK=1 mcopy -sm -i "$image_file" :: "$tmp_mount/" 2>/dev/null || true
+    # Damaged images may not extract cleanly, but partial metadata is still useful.
+    if ! MTOOLS_SKIP_CHECK=1 mcopy -sm -i "$image_file" :: "$tmp_mount/" 2>/dev/null; then
+      log_warn "Could not fully extract IMG metadata for $(basename "$work"); continuing with partial metadata"
+    fi
 
     # Use existing fs_last_update function on extracted files (now with correct timestamps)
     date=$(fs_last_update "$tmp_mount")
