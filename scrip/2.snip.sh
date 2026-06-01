@@ -6,9 +6,9 @@ source "$BASE_DIR/scrip/libs.sh"
 # Run INSIDE the ISO mount, with $MOUNT_POINT set and with set -e
 generate_metadata() {
   local work="$1"
+  local date title
   fs_tree "." >> "$work"/tree.txt
 
-  local name
   date=$(fs_last_update ".")
   title="$date $(echo $(basename "$work") | tr '_' ' ')"
   echo "$title"                           |  meta_set title       0 "$work"
@@ -27,6 +27,7 @@ generate_img_metadata() {
   tmp_mount=$(make_tmpdir "ram") || return 1
 
   (
+    local date title
     trap 'rm -rf "$tmp_mount"' EXIT INT TERM HUP
 
     # Damaged images may not extract cleanly, but partial metadata is still useful.

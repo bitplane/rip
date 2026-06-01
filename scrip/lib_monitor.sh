@@ -8,6 +8,7 @@ monitor_log() {
 }
 
 monitor_queue() {
+    local queue count
     for queue in "${BASE_DIR}"/?.*; do
         count=$(find "$queue" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
         printf "%s %-15s: %s\n" "$(ui_emoji "$queue")" "$(basename "$queue")" "$count"

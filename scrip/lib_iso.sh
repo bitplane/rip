@@ -5,6 +5,7 @@ iso_is_udf() {
 
 iso_get_name() {
   local file="$1"
+  local name
 
   # Try ISO 9660 first
   name=$(isoinfo -d -i "$file" 2>/dev/null | grep "^Volume id:" | sed 's/Volume id:[ ]*//;s/[^A-Za-z0-9._-]/_/g;s/__*/_/g;s/_*$//')

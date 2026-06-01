@@ -15,6 +15,7 @@ make_tmpdir() {
 # Usage: fs_last_update ["path"]
 fs_last_update() {
     local path="${1:-.}"
+    local latest
     latest=$(
         find "$path" -maxdepth 1 ! -name "." -printf '%T@ %p\n' 2>/dev/null | \
         sort -nr       | head -n1        | \
@@ -73,6 +74,7 @@ fs_extract_icon() {
                "$dest/icon.png"
         ;;
       *.exe|*.dll)
+        local tmpdir largest
         tmpdir=$(mktemp -d)
 
         if ! wrestool -x --type=14 $icon_index "$icon_path" > "$tmpdir/temp.ico" 2>/dev/null; then
@@ -216,6 +218,7 @@ _fs_run_in_cleanup() {
 fs_insensitive() {
     local path="$1"
     local base="${2:-.}"
+    local match
     IFS='/' read -ra parts <<< "$path"
     for part in "${parts[@]}"; do
         match=$(find "$base" -mindepth 1 -maxdepth 1 -iname "$part" -print -quit)
