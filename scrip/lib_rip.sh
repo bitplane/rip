@@ -51,9 +51,3 @@ rip_ddrescue() {
   ) || return 1
 
 }
-
-drive_list() {
-  for drive in $(lsblk -d -o NAME,TYPE,MODEL | grep rom | cut -d " " -f 1); do
-    echo /dev/"$drive"
-  done
-}
